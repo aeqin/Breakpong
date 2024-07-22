@@ -35,6 +35,9 @@ public class Ball : MonoBehaviour
     private float particleMultiplier = 1.2f;
     private Color[] scoreMultiplierColors = new Color[5] { new Color32(120, 144, 156, 255), new Color32(43, 175, 43, 255), new Color32(69, 94, 222, 255), new Color32(156, 39, 176, 255), new Color32(229, 28, 35, 255) };
 
+    // On Death variables
+    [SerializeField] private ParticleSystem pf_onDeathParticles;
+
 
     // Start is called before the first frame update
     void Awake()
@@ -141,6 +144,15 @@ public class Ball : MonoBehaviour
     }
 
     /// <summary>
+    /// When Ball is destroyed, play particles
+    /// </summary>
+    private void OnDeathSpawnParticles(Vector2 _spawnPos)
+    {
+        // Instantiate death particles
+        ParticleSystem _ps = Instantiate(pf_onDeathParticles, _spawnPos, Quaternion.identity);
+    }
+
+    /// <summary>
     /// Reduce Ball speed to least
     /// </summary>
     private void SpeedFloor()
@@ -177,7 +189,7 @@ public class Ball : MonoBehaviour
             _grad.SetKeys(new GradientColorKey[] { new GradientColorKey(c_spriteRenderer.color, 0.0f), new GradientColorKey(speedColors[li_speedStage.curr], 0.5f) }, new GradientAlphaKey[] { new GradientAlphaKey(0.7f, 0.0f), new GradientAlphaKey(0.2f, 1.0f) });
             c_trailRenderer.colorGradient = _grad;
 
-            c_trailRenderer.startWidth = transform.localScale.x;
+            c_trailRenderer.startWidth = transform.localScale.x * 0.3f;
         }
     }
 
@@ -196,7 +208,7 @@ public class Ball : MonoBehaviour
     /// <returns>Ideal position of Ball after magnetizing to Paddle</returns>
     public Vector2 FreezeBallOnPaddle(Bounds _paddleBounds)
     {
-        Vector3 _squareAroundCollider = Utilities.Vec2FromFloat(c_circleCol.radius / 2f + 0.05f);
+        Vector3 _squareAroundCollider = Utilities.Vec2FromFloat(c_circleCol.radius * 2f);
         Bounds _ballBounds = new Bounds((Vector2)transform.position, _squareAroundCollider);
         Vector3 _dirToPaddle = (c_rb.velocity * -1).normalized;// (_paddleBounds.center - _ballBounds.center).normalized;
         Vector3 _start = _paddleBounds.center;
@@ -264,6 +276,7 @@ public class Ball : MonoBehaviour
     /// </summary>
     public void DestroyBall()
     {
+        OnDeathSpawnParticles(transform.position);
         Destroy(gameObject);
     }
 

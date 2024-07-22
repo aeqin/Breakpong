@@ -540,7 +540,6 @@ protected void UpdatePaddleActionIcons(PaddleAction _PA)
         {
             Vector2 _ballPos = _ball.FreezeBallOnPaddle(c_boxCol.bounds); // Tell Ball to freeze itself on Paddle
             Vector2 _paddleToBallOffset = _ballPos - c_rb.position;
-            _paddleToBallOffset.x = dirToCenter * c_boxCol.bounds.size.x;
             if (!_PA_Magnet.dict_ball_offsetPos.ContainsKey(_ball))
                 _PA_Magnet.dict_ball_offsetPos[_ball] = _paddleToBallOffset;
         }

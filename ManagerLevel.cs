@@ -35,9 +35,11 @@ public class ManagerLevel : MonoBehaviour
     private bool f_isFlashingScore = false;
 
     // Lives variables
+    [SerializeField] private LivesGrid livesGrid;
     [SerializeField] private GameObject panelGameOver;
     [SerializeField] private GameObject panelWin;
     private LimitInt li_lives = new LimitInt(3, 0, 3);
+    
 
     void Update()
     {
@@ -55,6 +57,9 @@ public class ManagerLevel : MonoBehaviour
 
     public void Initialize()
     {
+        // Subscribe to signals
+        livesGrid.EventDroppedBallReached += OnDroppedBallReached;
+
         OnGameBegin();
 
         // Send Signals
@@ -76,6 +81,7 @@ public class ManagerLevel : MonoBehaviour
 
         // Reset lives
         li_lives.resetToMax();
+        livesGrid.InitializeLives(li_lives.curr);
 
         // Zero score
         scoreText.color = baseScoreColor;
@@ -153,9 +159,57 @@ public class ManagerLevel : MonoBehaviour
         f_isFlashingScore = false; // Finish flash flag
     }
 
+    /// <summary>
+    /// Lose a life
+    /// </summary>
+    private void LoseLife()
+    {
+        li_lives.Decrement();
+
+        livesGrid.NextLife();
+    }
+
+    /// <summary>
+    /// Gain a life
+    /// </summary>
+    private void GainLife()
+    {
+        li_lives.Increment();
+
+        livesGrid.AddLife();
+    }
+
+    /// <summary>
+    /// Player ran out of lives, Game Over
+    /// </summary>
+    private void GameOver()
+    {
+        panelGameOver.SetActive(true);
+
+        ManagerPaddle.Instance.DisablePaddles();
+    }
+
+    /// <summary>
+    /// Player destroyed all the Bricks, Game Win
+    /// </summary>
+    private void GameWin()
+    {
+        panelWin.SetActive(true);
+
+        ManagerPaddle.Instance.DisablePaddles();
+    }
+
     /*********************************************************************************************************************************************************************************
      * Public Methods
      *********************************************************************************************************************************************************************************/
+    /// <summary>
+    /// Returns the level boundaries in Bounds
+    /// </summary>
+    public Bounds GetLevelBounds()
+    {
+        return c_boundary.bounds;
+    }
+
     /// <summary>
     /// Checks if given Bounds is within the boundaries of the level
     /// </summary>
@@ -192,13 +246,10 @@ public class ManagerLevel : MonoBehaviour
         {
             GameOver();
         }
-        else // Spawn another Ball
+        else
         {
-            Vector2 _centerTop = (Vector2)c_boundary.bounds.center + new Vector2(0, c_boundary.bounds.extents.y + (-1 * 0.13f)); // Slightly below center top of bounds
-            ManagerBall.Instance.OnLifeLostSpawnBallAt(_centerTop);
+            LoseLife();
         }
-
-        li_lives.Decrement();
     }
 
     /// <summary>
@@ -209,27 +260,14 @@ public class ManagerLevel : MonoBehaviour
         OnGameBegin();
     }
 
+    /*********************************************************************************************************************************************************************************
+     * On Event Methods
+     *********************************************************************************************************************************************************************************/
     /// <summary>
-    /// Player ran out of lives, Game Over
+    /// When Game begins, spawn 1 Ball in the middle of the screen
     /// </summary>
-    public void GameOver()
+    private void OnDroppedBallReached(Vector2 _ballPos)
     {
-        panelGameOver.SetActive(true);
-
-        ManagerPaddle.Instance.DisablePaddles();
-
-        Time.timeScale = 0;
-    }
-
-    /// <summary>
-    /// Player destroyed all the Bricks, Game Win
-    /// </summary>
-    public void GameWin()
-    {
-        panelWin.SetActive(true);
-
-        ManagerPaddle.Instance.DisablePaddles();
-
-        Time.timeScale = 0;
+        ManagerBall.Instance.OnLifeLostSpawnBallAt(_ballPos);
     }
 }
