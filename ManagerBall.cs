@@ -159,7 +159,7 @@ public class ManagerBall : MonoBehaviour
 
         Vector2 _dirToPaddleLeft = (ManagerPaddle.Instance.GetPaddleLeft().transform.position - _ball.transform.position).normalized;
         Vector2 _dirToPaddleRight = (ManagerPaddle.Instance.GetPaddleRight().transform.position - _ball.transform.position).normalized;
-        Vector2 _randDir = (new System.Random().Next(2) == 0) ? _dirToPaddleLeft : _dirToPaddleRight; // 50% each direction
+        Vector2 _randDir = Utilities.FlipACoin() ? _dirToPaddleLeft : _dirToPaddleRight; // 50% each direction
 
         _ball.LaunchBallInDir(_randDir);
     }

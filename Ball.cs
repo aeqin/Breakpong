@@ -201,7 +201,23 @@ public class Ball : MonoBehaviour
     {
         return c_rb.velocity.normalized;
     }
+
+    /// <summary>
+    /// Returns the current score multiplier of this Ball
+    /// </summary>
+    public float GetBallScoreMultiplier()
+    {
+        return currScoreMultiplier;
+    }
     
+    /// <summary>
+    /// Returns the current score multiplier Color of this Ball
+    /// </summary>
+    public Color GetBallScoreMultiplierColor()
+    {
+        return scoreMultiplierColors[li_noPaddleHitScoreMultiplierStage.curr];
+    }
+
     /// <summary>
     /// When Ball collides with magnetized Paddle, freeze Ball at Paddle
     /// </summary>
@@ -251,15 +267,13 @@ public class Ball : MonoBehaviour
     /// <summary>
     /// On Brick hit, increase Ball score multiplier (up to max), and tell ManagerLevel to increase the score
     /// </summary>
-    public void OnBrickHit()
+    public void UpdateBallScoreMultiplierOnBrickHit()
     {
         if (li_noPaddleHitScoreMultiplierStage.curr < li_noPaddleHitScoreMultiplierStage.max)
         {
             currScoreMultiplier *= scoreMultiplierIncreaseOnHit; // Increase ball score multiplier
             li_noPaddleHitScoreMultiplierStage.Increment();
         }
-
-        ManagerLevel.Instance.OnBrickDestroyedByBall(currScoreMultiplier, scoreMultiplierColors[li_noPaddleHitScoreMultiplierStage.curr]);
     }
 
     /// <summary>

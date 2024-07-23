@@ -28,7 +28,6 @@ public class ManagerLevel : MonoBehaviour
     // Score variables
     public TextMeshProUGUI scoreText;
     private int score = 0;
-    private int brickBaseScore = 10;
     private Color baseScoreColor = Color.white;
 
     private IEnumerator flashScoreCoroutine;
@@ -229,12 +228,15 @@ public class ManagerLevel : MonoBehaviour
     /// <summary>
     /// When Brick is destroyed by a Ball, add to score. (the more Bricks that Balls destroy without hitting Paddle, the larger the score gain)
     /// </summary>
-    public void OnBrickDestroyedByBall(float _ballScoreMultiplier, Color _ballScoreColor)
+    public void UpdateScoreOnBrickDestroyedByBall(Brick _brick, Ball _ball)
     {
-        int _brickScore = (int)(brickBaseScore * _ballScoreMultiplier);
+        // Update Ball score multiplier on hit with Brick
+        _ball.UpdateBallScoreMultiplierOnBrickHit();
+
+        int _brickScore = (int)(_brick.GetScore() * _ball.GetBallScoreMultiplier());
         UpdateScore(_brickScore);
 
-        FlashScore(_ballScoreColor); // Flash score by Ball score multiplier color
+        FlashScore(_ball.GetBallScoreMultiplierColor()); // Flash score by Ball score multiplier color
     }
 
     /// <summary>

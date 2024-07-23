@@ -62,4 +62,12 @@ public static class Utilities
         Debug.DrawLine(top_right, right_bot, _color, _lifetime);
         Debug.DrawLine(right_bot, bot_left, _color, _lifetime);
     }
+
+    /// <summary>
+    /// Returns 50% chance to be true, 50% chance to be false
+    /// </summary>
+    public static bool FlipACoin()
+    {
+        return (new System.Random().Next(2) == 0);
+    }
 }
