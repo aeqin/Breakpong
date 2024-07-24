@@ -33,6 +33,7 @@ public class ManagerBall : MonoBehaviour
     /*********************************************************************************************************************************************************************************
      * Private Methods
      *********************************************************************************************************************************************************************************/
+    #region Private Methods
     /// <summary>
     /// Create a Ball in the middle of the screen, and add Ball to list of Balls
     /// </summary>
@@ -89,14 +90,12 @@ public class ManagerBall : MonoBehaviour
             _ballClone.LaunchBallInDir(_rotByDegDown * _dir);
         }
     }
-
-    /*********************************************************************************************************************************************************************************
-     * Protected Methods
-     *********************************************************************************************************************************************************************************/
+    #endregion
 
     /*********************************************************************************************************************************************************************************
      * Public Methods
      *********************************************************************************************************************************************************************************/
+    #region Public Methods
     /// <summary>
     /// Ask BallManager to handle event when Ball enters Deathzone
     /// </summary>
@@ -163,9 +162,24 @@ public class ManagerBall : MonoBehaviour
 
         _ball.LaunchBallInDir(_randDir);
     }
+
+    /// <summary>
+    /// Destroy all Balls
+    /// </summary>
+    public void DestroyBalls()
+    {
+        foreach (Ball _ball in list_Balls)
+        {
+            _ball.DestroyBall();
+        }
+        list_Balls.Clear();
+    }
+    #endregion
+
     /*********************************************************************************************************************************************************************************
      * On Event Methods
      *********************************************************************************************************************************************************************************/
+    #region On Event Methods
     /// <summary>
     /// When Game begins, spawn 1 Ball in the middle of the screen
     /// </summary>
@@ -173,4 +187,5 @@ public class ManagerBall : MonoBehaviour
     {
         CreateBallAt(ManagerPaddle.Instance.GetPaddleLeft().transform.position);
     }
+    #endregion
 }

@@ -25,6 +25,7 @@ public class PaddleActionIcon : MonoBehaviour
     /*********************************************************************************************************************************************************************************
      * Public Methods
      *********************************************************************************************************************************************************************************/
+    #region Public Methods
     /// <summary>
     /// Display either "is pressed" sprite or "unpressed" sprite
     /// </summary>
@@ -49,10 +50,12 @@ public class PaddleActionIcon : MonoBehaviour
     {
         c_spriteRenderer.sprite = _spr;
     }
+    #endregion
 
     /*********************************************************************************************************************************************************************************
      * On Event Methods
      *********************************************************************************************************************************************************************************/
+    #region On Event Methods
     /// <summary>
     /// When Ball enters space of PaddleActionIcon, lower alpha of the icon
     /// </summary>
@@ -83,4 +86,5 @@ public class PaddleActionIcon : MonoBehaviour
             }
         }
     }
+    #endregion
 }

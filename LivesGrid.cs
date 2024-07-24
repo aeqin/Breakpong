@@ -37,6 +37,7 @@ public class LivesGrid : MonoBehaviour
     /*********************************************************************************************************************************************************************************
      * Private Methods
      *********************************************************************************************************************************************************************************/
+    #region Private Methods
     /// <summary>
     /// Calculate the offset from the current position of LivesGrid, so that the final Ball in the grid is positioned over the center of the level
     /// </summary>
@@ -177,16 +178,26 @@ public class LivesGrid : MonoBehaviour
 
         MoveGridToOffset();
     }
+    #endregion
 
     /*********************************************************************************************************************************************************************************
      * Public Methods
      *********************************************************************************************************************************************************************************/
+    #region Public Methods
     /// <summary>
     /// Create a number of Ball sprites to add as children to this LivesGrid (a GridLayout) to represent how many lives the Player has left
     /// </summary>
     /// <param name="_numLives"></param>
     public void InitializeLives(int _numLives)
     {
+        // First make sure to clear any old LifeBalls left in GridLayout (from lives represented the previous game)
+        foreach (GameObject _oldLifeBall in list_lifeBalls)
+        {
+            Destroy(_oldLifeBall);
+        }
+        list_lifeBalls.Clear();
+
+        // Then add new LifeBalls to GridLayout for current number of lives
         for (int life = 0; life < _numLives; life++)
         {
             AddLife();
@@ -213,4 +224,5 @@ public class LivesGrid : MonoBehaviour
 
         DropNextLifeBall();
     }
+    #endregion
 }

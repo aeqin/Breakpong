@@ -23,6 +23,7 @@ public class ManagerManager : MonoBehaviour
     {
         // Control spawn order of the Managers
         ManagerBall.Instance.Initialize();
+        ManagerBrick.Instance.Initialize();
         ManagerLevel.Instance.Initialize(); // Spawn last, needs to wait for other Managers to subscribe to BeginGame event
     }
 }

@@ -42,6 +42,7 @@ public class PaddleRight : Paddle
     /*********************************************************************************************************************************************************************************
      * Private Methods
      *********************************************************************************************************************************************************************************/
+    #region Private Methods
     private void OnMovePaddleRightPerformed(InputAction.CallbackContext callbackContext)
     {
         paddleRightInputVector = callbackContext.ReadValue<Vector2>();
@@ -67,10 +68,12 @@ public class PaddleRight : Paddle
     {
         OnPaddleActionCancel(currPaddleRightActionTwo);
     }
+    #endregion
 
     /*********************************************************************************************************************************************************************************
      * Override parent Methods
      *********************************************************************************************************************************************************************************/
+    #region Override Methods
     /// <summary>
     /// Move the Paddle in the direction captured by the input vector
     /// </summary>
@@ -110,4 +113,5 @@ public class PaddleRight : Paddle
     {
         currPaddleRightActionTwo = _PA;
     }
+    #endregion
 }

@@ -68,12 +68,13 @@ public class ManagerLevel : MonoBehaviour
     /*********************************************************************************************************************************************************************************
      * Private Methods
      *********************************************************************************************************************************************************************************/
+    #region Private Methods
     /// <summary>
     /// Once the game begins
     /// </summary>
     private void OnGameBegin()
     {
-        // Unactivate UI elements
+        // Disable UI elements
         panelWin.SetActive(false);
         panelGameOver.SetActive(false);
         Time.timeScale = 1.0f;
@@ -86,6 +87,9 @@ public class ManagerLevel : MonoBehaviour
         scoreText.color = baseScoreColor;
         score = 0;
         UpdateScore(0);
+
+        // Reset Bricks
+        ManagerBrick.Instance.ResetBricks();
 
         // Reset Paddles
         ManagerPaddle.Instance.ResetPaddles();
@@ -186,6 +190,7 @@ public class ManagerLevel : MonoBehaviour
         panelGameOver.SetActive(true);
 
         ManagerPaddle.Instance.DisablePaddles();
+        ManagerBall.Instance.DestroyBalls();
     }
 
     /// <summary>
@@ -196,11 +201,14 @@ public class ManagerLevel : MonoBehaviour
         panelWin.SetActive(true);
 
         ManagerPaddle.Instance.DisablePaddles();
+        ManagerBall.Instance.DestroyBalls();
     }
+    #endregion
 
     /*********************************************************************************************************************************************************************************
      * Public Methods
      *********************************************************************************************************************************************************************************/
+    #region Public Methods
     /// <summary>
     /// Returns the level boundaries in Bounds
     /// </summary>
@@ -255,16 +263,26 @@ public class ManagerLevel : MonoBehaviour
     }
 
     /// <summary>
+    /// No more Bricks left on screen, Player wins
+    /// </summary>
+    public void OnNoBricksLeft()
+    {
+        GameWin();
+    }
+
+    /// <summary>
     /// Restart the current level
     /// </summary>
     public void OnRestart()
     {
         OnGameBegin();
     }
+    #endregion
 
     /*********************************************************************************************************************************************************************************
      * On Event Methods
      *********************************************************************************************************************************************************************************/
+    #region On Event Methods
     /// <summary>
     /// When Game begins, spawn 1 Ball in the middle of the screen
     /// </summary>
@@ -272,4 +290,5 @@ public class ManagerLevel : MonoBehaviour
     {
         ManagerBall.Instance.OnLifeLostSpawnBallAt(_ballPos);
     }
+    #endregion
 }

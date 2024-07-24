@@ -138,6 +138,7 @@ public class Paddle : MonoBehaviour
     /*********************************************************************************************************************************************************************************
      * Private Methods
      *********************************************************************************************************************************************************************************/
+    #region Private Methods
     /// <summary>
     /// Create all the PaddleAction objects
     /// </summary>
@@ -153,10 +154,12 @@ public class Paddle : MonoBehaviour
         list_PA.Add(PA_Magnet_OneUse);
         list_PA.Add(PA_Slam);
     }
+    #endregion
 
     /*********************************************************************************************************************************************************************************
      * Protected Methods
      *********************************************************************************************************************************************************************************/
+    #region Protected Methods
     /// <summary>
     /// Potentially call PaddleAction button "on press" method
     /// </summary>
@@ -277,11 +280,10 @@ public class Paddle : MonoBehaviour
         UpdatePaddleActionIcons(_PA); // Update PaddleActionIcons of newly unassigned PaddleAction
     }
 
-
-/// <summary>
-/// Depending on the PaddleAction provided, update the linked Icons
-/// </summary>
-protected void UpdatePaddleActionIcons(PaddleAction _PA)
+    /// <summary>
+    /// Depending on the PaddleAction provided, update the linked Icons
+    /// </summary>
+    protected void UpdatePaddleActionIcons(PaddleAction _PA)
     {
         if (CurrActionOne == _PA)
         {
@@ -366,10 +368,12 @@ protected void UpdatePaddleActionIcons(PaddleAction _PA)
     {
         Debug.LogError("Override Paddle:setPaddleActionTwo() in children");
     }
+    #endregion
 
     /*********************************************************************************************************************************************************************************
      * Public Methods
      *********************************************************************************************************************************************************************************/
+    #region Public Methods
     /// <summary>
     /// Get Paddle Ball spawn position. (Middle of Paddle, slightly towards center of the Screen)
     /// </summary>
@@ -458,9 +462,12 @@ protected void UpdatePaddleActionIcons(PaddleAction _PA)
     {
         Debug.Log(this + " 1:" + CurrActionOne.ToString() + " 2:" + CurrActionTwo.ToString());
     }
+    #endregion
+
     /*********************************************************************************************************************************************************************************
      * PaddleAction Methods
      *********************************************************************************************************************************************************************************/
+    #region PaddleAction Methods
     /// <summary>
     /// Start (on press) of PaddleAction Magnet. Shoot Ball forward
     /// </summary>
@@ -618,13 +625,16 @@ protected void UpdatePaddleActionIcons(PaddleAction _PA)
             }
         }
     }
+    #endregion
 
     /*********************************************************************************************************************************************************************************
      * On Event Methods
      *********************************************************************************************************************************************************************************/
+    #region On Event Methods
     protected void OnCollisionEnter2D(Collision2D collision)
     {
         OnPaddleActionCollision(CurrActionOne, collision);
         OnPaddleActionCollision(CurrActionTwo, collision);
     }
+    #endregion
 }

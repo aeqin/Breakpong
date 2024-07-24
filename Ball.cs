@@ -79,6 +79,7 @@ public class Ball : MonoBehaviour
     /*********************************************************************************************************************************************************************************
      * Private Methods
      *********************************************************************************************************************************************************************************/
+    #region Private Methods
     private void CheckWithinBounds()
     {
         if (!ManagerLevel.Instance.IsPosInsideLevel(transform.position)) // Is Ball outside of level boundaries? (from physics shenanigans)
@@ -192,10 +193,12 @@ public class Ball : MonoBehaviour
             c_trailRenderer.startWidth = transform.localScale.x * 0.3f;
         }
     }
+    #endregion
 
     /*********************************************************************************************************************************************************************************
      * Public Methods
      *********************************************************************************************************************************************************************************/
+    #region Public Methods
     /// <returns>The normalized velocity of the Ball (direction)</returns>
     public Vector2 GetBallCurrDir()
     {
@@ -293,10 +296,12 @@ public class Ball : MonoBehaviour
         OnDeathSpawnParticles(transform.position);
         Destroy(gameObject);
     }
+    #endregion
 
     /*********************************************************************************************************************************************************************************
      * On Event Methods
      *********************************************************************************************************************************************************************************/
+    #region On Event Methods
     private void OnCollisionEnter2D(Collision2D collision)
     {
         OnCollisionDoSlow(); // Potentially slow down Ball on collision with anything
@@ -325,4 +330,5 @@ public class Ball : MonoBehaviour
 
         OnCollisionSpawnParticles(collision.GetContact(0).point); // On hit, spawn collision particles
     }
+    #endregion
 }

@@ -20,7 +20,7 @@ public class ManagerPowerup : MonoBehaviour
     #endregion
 
     /// <summary>
-    /// Enum of every Powerup in the game
+    /// Enum of every type of Powerup in the game
     /// </summary>
     public enum PowerupType
     {
@@ -45,6 +45,7 @@ public class ManagerPowerup : MonoBehaviour
     /*********************************************************************************************************************************************************************************
      * Private Methods
      *********************************************************************************************************************************************************************************/
+    #region Private Methods
     /// <summary>
     /// Get the type of Powerup to spawn, depending on level and drop weights
     /// </summary>
@@ -85,10 +86,12 @@ public class ManagerPowerup : MonoBehaviour
 
         _powerupToDestroy.DestroyPowerup();
     }
+    #endregion
 
     /*********************************************************************************************************************************************************************************
      * Public Methods
      *********************************************************************************************************************************************************************************/
+    #region Public Methods
     /// <summary>
     /// When a Paddle picks up a Powerup, handle it
     /// </summary>
@@ -169,4 +172,5 @@ public class ManagerPowerup : MonoBehaviour
     {
         RemovePowerup(_powerup);
     }
+    #endregion
 }

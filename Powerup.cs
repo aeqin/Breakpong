@@ -46,6 +46,7 @@ public class Powerup : MonoBehaviour
     /*********************************************************************************************************************************************************************************
      * Private Methods
      *********************************************************************************************************************************************************************************/
+    #region Private Methods
     /// <summary>
     /// When Powerup is destroyed, play particles
     /// </summary>
@@ -63,10 +64,12 @@ public class Powerup : MonoBehaviour
         Sprite _spr_powerup = ManagerPowerup.Instance.GetSpriteFromPowerupType(powerUpType);
         c_spriteRenderer.sprite = _spr_powerup;
     }
+    #endregion
 
     /*********************************************************************************************************************************************************************************
      * Public Methods
      *********************************************************************************************************************************************************************************/
+    #region Public Methods
     /// <summary>
     /// Returns type of Powerup this is
     /// </summary>
@@ -83,10 +86,12 @@ public class Powerup : MonoBehaviour
         OnDeathSpawnParticles(transform.position);
         Destroy(gameObject);
     }
+    #endregion
 
     /*********************************************************************************************************************************************************************************
      * On Event Methods
      *********************************************************************************************************************************************************************************/
+    #region On Event Methods
     private void OnTriggerEnter2D(Collider2D collision)
     {
         // Did Powerup hit Paddle?
@@ -95,5 +100,6 @@ public class Powerup : MonoBehaviour
             ManagerPowerup.Instance.OnPowerupHitPaddle(this, _paddle);
         }
     }
+    #endregion
 
 }
