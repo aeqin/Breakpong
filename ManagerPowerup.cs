@@ -42,37 +42,114 @@ public class ManagerPowerup : MonoBehaviour
     [SerializeField] private Sprite spr_slam;
     [SerializeField] private Sprite spr_ballSplit;
 
+    // PowerupDropEngine
+    private PowerupDropEngine currPowerupDropEngine;
+    // Class used to store & calculate Powerup droprates
+    public class PowerupDropEngine
+    {
+        private Dictionary<PowerupType, int> dict_pwrType_weight;
+        int totalWeight = 0;
+
+        public PowerupDropEngine(Dictionary<PowerupType, int> _dict_pwrType_weight)
+        {
+            dict_pwrType_weight = new Dictionary<PowerupType, int>(_dict_pwrType_weight); // Shallow copy
+
+            // After weight assignment for each PowerupType, add up all the total weights
+            foreach ((PowerupType _pwrType, int _weight) in dict_pwrType_weight)
+            {
+                totalWeight += _weight;
+            }
+        }
+
+        /// <summary>
+        /// Returns the droprate of given PowerupType
+        /// </summary>
+        public float GetDroprateFor(PowerupType _pwrType)
+        {
+            if (!dict_pwrType_weight.ContainsKey(_pwrType))
+                return 0;
+
+            return (float)dict_pwrType_weight[_pwrType] / totalWeight;
+        }
+
+        /// <summary>
+        /// Change the weight of the given PowerupType
+        /// </summary>
+        public void AdjustWeightFor(PowerupType _pwrType, int _newWeight)
+        {
+            totalWeight -= dict_pwrType_weight[_pwrType]; // Subtract old weight from total weight
+            dict_pwrType_weight[_pwrType] = _newWeight; // Assign new weight
+            totalWeight += dict_pwrType_weight[_pwrType]; // Add new weight to total weight
+        }
+
+        /// <summary>
+        /// Returns the next PowerupType to be randomly selected, based on its weight
+        /// </summary>
+        public PowerupType Next()
+        {
+            float _randRoll = Mathf.Clamp(Random.Range(0f, 1.0f) * totalWeight, 1, totalWeight); // Lay out a road (Clamp 1 as minimum so 0 weights NEVER reach the end of the road)
+
+            foreach ((PowerupType _pwrType, int _weight) in dict_pwrType_weight)
+            {
+                _randRoll -= _weight; // Travel the road by weight of each PowerupType (larger weights travel more distance, better chance of reaching end of road)
+                if (_randRoll < 0f) // Reaching the end of the road, return the PowerupType
+                {
+                    return _pwrType;
+                }
+            }
+
+            return PowerupType.None;
+        }
+
+        /// <summary>
+        /// Debug.Log out all the Powerups, and their % chance to appear
+        /// </summary>
+        public void DebugPowerupDroprates()
+        {
+            string _dropRateString = "-------------------\n" +
+                                     "Powerup Droprates:\n" +
+                                     "-----------------------------\n";
+            foreach (PowerupType _pwrType in dict_pwrType_weight.Keys)
+            {
+                _dropRateString += _pwrType.ToString() + " | " + GetDroprateFor(_pwrType) * 100 + "%\n";
+            }
+            _dropRateString += "-------------------";
+
+            Debug.Log(_dropRateString);
+        }
+    }
+
     /*********************************************************************************************************************************************************************************
      * Private Methods
      *********************************************************************************************************************************************************************************/
     #region Private Methods
     /// <summary>
-    /// Get the type of Powerup to spawn, depending on level and drop weights
+    /// Create a Powerup at a particular position, and add Powerup to list of Powerup. Will return null when no Powerup is created
     /// </summary>
-    private ManagerPowerup.PowerupType GetNextDroppedPowerUpType()
+    private Powerup CreatePowerupAt(ManagerPowerup.PowerupType _requestedPowerupType, Vector2 _spawnPos)
     {
-        // TODO ManagerLevel.Instance.GetNextDroppedPowerupType();
-
-        return PowerupType.PaddleMagnet;
-    }
-    
-    /// <summary>
-    /// Create a Powerup at a particular position, and add Powerup to list of Powerup
-    /// </summary>
-    private Powerup CreatePowerupAt(ManagerPowerup.PowerupType _powerupType, Vector2 _spawnPos)
-    {
-        Powerup _powerup = Instantiate(pf_powerup, _spawnPos, Quaternion.identity);
-        list_powerups.Add(_powerup);
-
-        if (_powerupType == ManagerPowerup.PowerupType.Anything)
+        if (_requestedPowerupType == ManagerPowerup.PowerupType.None)
         {
-            _powerup.Initialize(GetNextDroppedPowerUpType()); // Type of spawned Powerup, depending on current level drop rates
+            return null;
+        }
+
+        PowerupType _powerupType; // Type of created Powerup
+        if (_requestedPowerupType == ManagerPowerup.PowerupType.Anything)
+        {
+            _powerupType = currPowerupDropEngine.Next(); // Can be anything, so randomly roll a Powerup allowed for this level
+            if (_powerupType == ManagerPowerup.PowerupType.None)
+            {
+                return null; // Randomly rolled a "None" Powerup
+            }
         }
         else
         {
-            _powerup.Initialize(_powerupType);
+            _powerupType = _requestedPowerupType; // Set Powerup type as requested
         }
-        
+
+        Powerup _powerup = Instantiate(pf_powerup, _spawnPos, Quaternion.identity);
+        list_powerups.Add(_powerup);
+        _powerup.Initialize(_powerupType);
 
         return _powerup;
     }
@@ -171,6 +248,14 @@ public class ManagerPowerup : MonoBehaviour
     public void OnPowerupOffScreen(Powerup _powerup)
     {
         RemovePowerup(_powerup);
+    }
+
+    /// <summary>
+    /// Reset PowerupDropEngine for the current level
+    /// </summary>
+    public void ResetPowerupDropEngine(Dictionary<PowerupType, int> _dict_pwrType_weight)
+    {
+        currPowerupDropEngine = new PowerupDropEngine(_dict_pwrType_weight); // Assign new weighted drop table for current level
     }
     #endregion
 }

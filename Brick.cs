@@ -7,7 +7,7 @@ public class Brick : MonoBehaviour
     private SpriteRenderer c_spriteRenderer;
 
     [SerializeField] private ManagerBrick.BrickType brickType = ManagerBrick.BrickType.Normal;
-    [SerializeField] private ManagerPowerup.PowerupType droppedPowerupType = ManagerPowerup.PowerupType.None;
+    [SerializeField] private ManagerPowerup.PowerupType droppedPowerupType = ManagerPowerup.PowerupType.Anything;
     private int brickBaseScore = 10;
 
     /// <summary>

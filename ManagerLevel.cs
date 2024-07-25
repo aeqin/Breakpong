@@ -39,6 +39,8 @@ public class ManagerLevel : MonoBehaviour
     [SerializeField] private GameObject panelWin;
     private LimitInt li_lives = new LimitInt(3, 0, 3);
     
+    // Current level variables
+    private int currLevel = 0;
 
     void Update()
     {
@@ -59,7 +61,7 @@ public class ManagerLevel : MonoBehaviour
         // Subscribe to signals
         livesGrid.EventDroppedBallReached += OnDroppedBallReached;
 
-        OnGameBegin();
+        OnGameBegin(currLevel);
 
         // Send Signals
         EventBeginGame?.Invoke();
@@ -72,8 +74,12 @@ public class ManagerLevel : MonoBehaviour
     /// <summary>
     /// Once the game begins
     /// </summary>
-    private void OnGameBegin()
+    /// <param name="_level">Level to begin</param>
+    private void OnGameBegin(int _level)
     {
+        // Set current level
+        currLevel = _level;
+
         // Disable UI elements
         panelWin.SetActive(false);
         panelGameOver.SetActive(false);
@@ -87,6 +93,9 @@ public class ManagerLevel : MonoBehaviour
         scoreText.color = baseScoreColor;
         score = 0;
         UpdateScore(0);
+
+        // Reset PowerupDropEngine for current level
+        ManagerPowerup.Instance.ResetPowerupDropEngine(GetPowerupWeightDictForLevel(currLevel));
 
         // Reset Bricks
         ManagerBrick.Instance.ResetBricks();
@@ -160,6 +169,26 @@ public class ManagerLevel : MonoBehaviour
         scoreText.color = _baseColor;
 
         f_isFlashingScore = false; // Finish flash flag
+    }
+
+    private Dictionary<ManagerPowerup.PowerupType, int> GetPowerupWeightDictForLevel(int _level)
+    {
+        Dictionary<ManagerPowerup.PowerupType, int> _dict_pwrType_weight;
+
+        switch (_level)
+        {
+            default:
+                _dict_pwrType_weight = new Dictionary<ManagerPowerup.PowerupType, int>()
+                {
+                    {ManagerPowerup.PowerupType.None, 100},
+                    {ManagerPowerup.PowerupType.PaddleMagnet, 10},
+                    {ManagerPowerup.PowerupType.PaddleSlam, 20},
+                    {ManagerPowerup.PowerupType.BallSplit, 30},
+                };
+                break;
+        }
+
+        return _dict_pwrType_weight;
     }
 
     /// <summary>
@@ -275,7 +304,7 @@ public class ManagerLevel : MonoBehaviour
     /// </summary>
     public void OnRestart()
     {
-        OnGameBegin();
+        OnGameBegin(currLevel);
     }
     #endregion
 
