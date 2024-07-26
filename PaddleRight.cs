@@ -21,22 +21,22 @@ public class PaddleRight : Paddle
     {
         inputControls.Enable();
         inputControls.Paddle.PaddleRightMovement.performed += OnMovePaddleRightPerformed;
-        inputControls.Paddle.PaddleRightMovement.canceled += OnMovePaddleRightCancelled;
+        inputControls.Paddle.PaddleRightMovement.canceled += OnMovePaddleRightReleased;
 
-        inputControls.Paddle.PaddleRightActionOne.started += OnPaddleRightActionOneStarted;
-        inputControls.Paddle.PaddleRightActionOne.canceled += OnPaddleRightActionOneCanceled;
-        inputControls.Paddle.PaddleRightActionTwo.started += OnPaddleRightActionTwoStarted;
-        inputControls.Paddle.PaddleRightActionTwo.canceled += OnPaddleRightActionTwoCanceled;
+        inputControls.Paddle.PaddleRightActionOne.started += OnPaddleRightActionOnePressed;
+        inputControls.Paddle.PaddleRightActionOne.canceled += OnPaddleRightActionOneReleased;
+        inputControls.Paddle.PaddleRightActionTwo.started += OnPaddleRightActionTwoPressed;
+        inputControls.Paddle.PaddleRightActionTwo.canceled += OnPaddleRightActionTwoReleased;
     }
 
     private void OnDisable()
     {
         inputControls.Disable();
         inputControls.Paddle.PaddleRightMovement.performed -= OnMovePaddleRightPerformed;
-        inputControls.Paddle.PaddleRightMovement.canceled -= OnMovePaddleRightCancelled;
+        inputControls.Paddle.PaddleRightMovement.canceled -= OnMovePaddleRightReleased;
 
-        inputControls.Paddle.PaddleRightActionOne.started -= OnPaddleRightActionOneStarted;
-        inputControls.Paddle.PaddleRightActionTwo.started -= OnPaddleRightActionTwoStarted;
+        inputControls.Paddle.PaddleRightActionOne.started -= OnPaddleRightActionOnePressed;
+        inputControls.Paddle.PaddleRightActionTwo.started -= OnPaddleRightActionTwoPressed;
     }
 
     /*********************************************************************************************************************************************************************************
@@ -47,26 +47,26 @@ public class PaddleRight : Paddle
     {
         paddleRightInputVector = callbackContext.ReadValue<Vector2>();
     }
-    private void OnMovePaddleRightCancelled(InputAction.CallbackContext callbackContext)
+    private void OnMovePaddleRightReleased(InputAction.CallbackContext callbackContext)
     {
         paddleRightInputVector = Vector2.zero;
     }
 
-    private void OnPaddleRightActionOneStarted(InputAction.CallbackContext callbackContext)
+    private void OnPaddleRightActionOnePressed(InputAction.CallbackContext callbackContext)
     {
-        OnPaddleActionStart(currPaddleRightActionOne);
+        OnPaddleActionPress(currPaddleRightActionOne);
     }
-    private void OnPaddleRightActionOneCanceled(InputAction.CallbackContext callbackContext)
+    private void OnPaddleRightActionOneReleased(InputAction.CallbackContext callbackContext)
     {
-        OnPaddleActionCancel(currPaddleRightActionOne);
+        OnPaddleActionRelease(currPaddleRightActionOne);
     }
-    private void OnPaddleRightActionTwoStarted(InputAction.CallbackContext callbackContext)
+    private void OnPaddleRightActionTwoPressed(InputAction.CallbackContext callbackContext)
     {
-        OnPaddleActionStart(currPaddleRightActionTwo);
+        OnPaddleActionPress(currPaddleRightActionTwo);
     }
-    private void OnPaddleRightActionTwoCanceled(InputAction.CallbackContext callbackContext)
+    private void OnPaddleRightActionTwoReleased(InputAction.CallbackContext callbackContext)
     {
-        OnPaddleActionCancel(currPaddleRightActionTwo);
+        OnPaddleActionRelease(currPaddleRightActionTwo);
     }
     #endregion
 

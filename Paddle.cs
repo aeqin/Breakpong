@@ -35,7 +35,7 @@ public class Paddle : MonoBehaviour
     protected PaddleAction PA_Empty;
     protected class PaddleActionEmpty : PaddleAction
     {
-        public PaddleActionEmpty(OnStartAction _sM, OnHeldAction _hM, OnCancelAction _cM, DuringPhysics _dPM, OnCollision _oCM, Sprite _sUP, Sprite _sP) : base(_sM, _hM, _cM, _dPM, _oCM, _sUP, _sP) { }
+        public PaddleActionEmpty(Sprite _sUP, Sprite _sP, int _nP = -1, float _aD = -1f) : base(_sUP, _sP, _nP, _aD) { }
     }
 
     // PaddleAction Magnet Variables
@@ -47,7 +47,20 @@ public class Paddle : MonoBehaviour
         public bool f_useOnce = false;
         public Dictionary<Ball, Vector2> dict_ball_offsetPos = new Dictionary<Ball, Vector2>();
 
-        public PaddleActionMagnet(OnStartAction _sM, OnHeldAction _hM, OnCancelAction _cM, DuringPhysics _dPM, OnCollision _oCM, Sprite _sUP, Sprite _sP) : base(_sM, _hM, _cM, _dPM, _oCM, _sUP, _sP) { }
+        public PaddleActionMagnet(Sprite _sUP, Sprite _sP, int _nP = -1, float _aD = -1f) : base(_sUP, _sP, _nP, _aD) { }
+
+        /// <summary>
+        /// Resets this PaddleActionMagnet attributes (launch still magnetized balls & clear dictionary)
+        /// </summary>
+        public override void Reset()
+        {
+            if (dict_ball_offsetPos.Count > 0) // Balls still magnetized to Paddle
+            {
+                onPressActionMethod(this); // Launch the Balls & clear dictionary
+            }
+
+            base.Reset();
+        }
     }
 
     // PaddleAction Slam Variables
@@ -55,7 +68,22 @@ public class Paddle : MonoBehaviour
     protected class PaddleActionSlam : PaddleAction
     {
         public enum SlamState { IDLE, SLAMMING, RESETTING, };
-        public SlamState currState = SlamState.IDLE;
+        private  SlamState _currState;
+        public SlamState currState
+        {  
+            get
+            {
+                return _currState;
+            }
+            set
+            {
+                _currState = value;
+                if (f_delayedUnassignment && value == SlamState.IDLE) // Unassignment was delayed until Paddle stopped moving
+                {
+                    f_forceUnassignment = true; // Allow PaddleActionSlam to be unassigned
+                }
+            }
+        }
         public Vector2 beforeSlamPos; // Initial Paddle position before Slam movement
         public Vector2 slamAcceleration = new Vector2(17, 0);
         public Vector2 slamDecceleration = new Vector2(21, 0);
@@ -64,48 +92,127 @@ public class Paddle : MonoBehaviour
         public float slamDistance = 2;
         public float slamSpeedSwitchProgress = 0.7f;
 
-        public PaddleActionSlam(OnStartAction _sM, OnHeldAction _hM, OnCancelAction _cM, DuringPhysics _dPM, OnCollision _oCM, Sprite _sUP, Sprite _sP) : base(_sM, _hM, _cM, _dPM, _oCM, _sUP, _sP) { }
+        public PaddleActionSlam(Sprite _sUP, Sprite _sP, int _nP = -1, float _aD = -1f) : base(_sUP, _sP, _nP, _aD) { }
+
+        /// <summary>
+        /// Check to see if PaddleActionSlam should delay unassignment (not yet idle, means Paddle is out of position)
+        /// </summary>
+        public override bool CheckDelayUnassign()
+        {
+            bool _baseCheck = base.CheckDelayUnassign();
+
+            // If base method decides that PaddleAction should NOT delay unassignment, check for PaddleActionSlam specific criteria
+            if (!_baseCheck)
+            {
+                if (currState != SlamState.IDLE) // Paddle is currently still moving, so delay unassignment until IDLE state reached again
+                {
+                    f_delayedUnassignment = true;
+                    return true; // Do delay
+                }
+            }
+
+            return _baseCheck;
+        }
     }
 
     /// <summary>
-    /// Class used to hold the methods for a PaddleAction depending on if the action button is pressed, held, etc.
+    /// Class used to hold the methods for a PaddleAction depending on event if the action button is pressed, held, release, or collision, etc.
     /// </summary>
     protected class PaddleAction
     {
-        public delegate void OnStartAction(PaddleAction _PA); // On Input started (first frame of pressed button)
+        public delegate bool OnPressAction(PaddleAction _PA); // On Input started (first frame of pressed button)
         public delegate void OnHeldAction(PaddleAction _PA); // While button is pressed (second frame +)
-        public delegate void OnCancelAction(PaddleAction _PA); // On Input canceled (first frame of released button)
+        public delegate void OnReleaseAction(PaddleAction _PA); // On Input released (first frame of released button)
         public delegate void DuringPhysics(PaddleAction _PA); // While each physics frame
         public delegate void OnCollision(PaddleAction _PA, Collision2D _col); // Called when Paddle collides with something
 
-        public OnStartAction onStartActionMethod;
+        public OnPressAction onPressActionMethod;
         public OnHeldAction onHeldActionMethod;
-        public OnCancelAction onCancelActionMethod;
-        public bool f_held = false;
+        public OnReleaseAction onReleaseActionMethod;
         public DuringPhysics duringPhysicsMethod;
         public OnCollision onCollisionMethod;
 
+        // Flags
+        public bool f_held = false;
+        public bool f_delayedUnassignment = false; // Has this PaddleAction delayed an unassignment?
+        public bool f_forceUnassignment = false; // Allow this PaddleAction to be forcibly unassigned
+
+        // Sprites of PaddleAction
         public Sprite spr_unPressed;
         public Sprite spr_pressed;
 
-        public PaddleAction(OnStartAction _startMethod, OnHeldAction _heldMethod, OnCancelAction _cancelMethod, DuringPhysics _duringPhysicsMethod, OnCollision _onCollisionMethod,
-                            Sprite _spr_unPressed, Sprite _spr_pressed)
+        // Uses of PaddleAction
+        public bool f_pressLimited = false; // Is PaddleAction limited by number of presses?
+        public LimitInt li_presses;
+
+        // Duration of PaddleAction
+        public bool f_durationLimited = false; // Is PaddleAction limited by duration?
+        public LimitFloat li_duration;
+
+        public PaddleAction(Sprite _spr_unPressed, Sprite _spr_pressed, int _numPresses = -1, float _activeDuration = -1f)
         {
-            onStartActionMethod = _startMethod;
-            onHeldActionMethod = _heldMethod;
-            onCancelActionMethod = _cancelMethod;
-            duringPhysicsMethod = _duringPhysicsMethod;
-            onCollisionMethod = _onCollisionMethod;
             spr_unPressed = _spr_unPressed;
             spr_pressed = _spr_pressed;
+            if (_numPresses > 0)
+            {
+                li_presses = new LimitInt(_numPresses, 0, _numPresses);
+                f_pressLimited = true;
+            }
+            if (_activeDuration > 0f)
+            {
+                li_duration = new LimitFloat(_activeDuration, 0, _activeDuration);
+                f_durationLimited = true;
+            }
 
             if (spr_unPressed == null) Debug.LogError("Attemping to create PaddleAction without unPressed sprite");
             if (spr_pressed == null) spr_pressed = spr_unPressed;
         }
 
+        /// <summary>
+        /// Return either the sprite of this PaddleAction when action button pressed, or unpressed
+        /// </summary>
         public Sprite GetSpriteByPressed()
         {
             return f_held ? spr_pressed : spr_unPressed;
+        }
+
+        /// <summary>
+        /// Check to see if PaddleAction should delay unassignment (perhaps in the middle of some action)
+        /// </summary>
+        public virtual bool CheckDelayUnassign()
+        {
+            bool _doDelay = true; 
+
+            if (!f_pressLimited && !f_durationLimited) return false; // Don't delay if PaddleAction isn't limited
+
+            if (f_pressLimited && li_presses.isMin()) return false; // Don't delay if PaddleAction is press-limited and out of presses
+
+            if (f_durationLimited && li_duration.isMin()) return false; // Don't delay if PaddleAction is duration-limited and out of time
+
+            // Made it here, means _doDelay is true
+            f_delayedUnassignment = true;
+
+            return _doDelay;
+        }
+
+        /// <summary>
+        /// Restores this PaddleAction's presses / durations
+        /// </summary>
+        public virtual void Restore()
+        {
+            f_delayedUnassignment = false;
+            f_forceUnassignment = false;
+            if (f_pressLimited) li_presses.resetToMax();
+            if (f_durationLimited) li_duration.resetToMax();
+        }
+
+        /// <summary>
+        /// Resets this PaddleAction attributes
+        /// </summary>
+        public virtual void Reset()
+        {
+            f_held = false;
+            Restore();
         }
     }
 
@@ -144,10 +251,29 @@ public class Paddle : MonoBehaviour
     /// </summary>
     private void CreatePaddleActions()
     {
-        PA_Empty = new PaddleActionEmpty(null, null, null, null, null, spr_Empty, null);
-        PA_Magnet = new PaddleActionMagnet(PaddleActionMagnetStart, PaddleActionMagnetHeld, PaddleActionMagnetCancel, PaddleActionMagnetDuring, PaddleActionMagnetCollision, spr_Magnet, spr_MagnetOFF);
-        PA_Magnet_OneUse = new PaddleActionMagnet(PaddleActionMagnetStart, PaddleActionMagnetHeld, PaddleActionMagnetCancel, PaddleActionMagnetDuring, PaddleActionMagnetCollision, spr_Magnet, null) { f_useOnce = true }; // Used in the beginning of the game (so Ball starts on Paddle)
-        PA_Slam = new PaddleActionSlam(PaddleActionSlamStart, null, null, PaddleActionSlamDuring, null, spr_Slam, null);
+        PA_Empty = new PaddleActionEmpty(spr_Empty, null, -1, -1f);
+        PA_Magnet = new PaddleActionMagnet(spr_Magnet, spr_MagnetOFF, -1, 20f)
+        {
+            onPressActionMethod = PaddleActionMagnetPress,
+            onHeldActionMethod = PaddleActionMagnetHeld,
+            onReleaseActionMethod = PaddleActionMagnetRelease,
+            duringPhysicsMethod = PaddleActionMagnetDuring,
+            onCollisionMethod = PaddleActionMagnetCollision,
+        };
+        PA_Magnet_OneUse = new PaddleActionMagnet(spr_Magnet, null, -1, -1f) // Used in the beginning of the game (so Ball starts on Paddle)
+        {
+            f_useOnce = true, // Allow Magnet to work only ONCE
+            onPressActionMethod = PaddleActionMagnetPress,
+            onHeldActionMethod = PaddleActionMagnetHeld,
+            onReleaseActionMethod = PaddleActionMagnetRelease,
+            duringPhysicsMethod = PaddleActionMagnetDuring,
+            onCollisionMethod = PaddleActionMagnetCollision,
+        }; 
+        PA_Slam = new PaddleActionSlam(spr_Slam, null, 3, -1f)
+        {
+            onPressActionMethod = PaddleActionSlamPress,
+            duringPhysicsMethod = PaddleActionSlamDuring,
+        };
 
         list_PA.Add(PA_Empty);
         list_PA.Add(PA_Magnet);
@@ -163,15 +289,29 @@ public class Paddle : MonoBehaviour
     /// <summary>
     /// Potentially call PaddleAction button "on press" method
     /// </summary>
-    protected void OnPaddleActionStart(PaddleAction _PA)
+    protected void OnPaddleActionPress(PaddleAction _PA)
     {
         if (_PA == null) return; // PaddleAction not assigned
 
         if (_PA != PA_Empty)
         {
-            if (_PA.onStartActionMethod != null) // PaddleAction has a "on press" button method
+            bool _f_hasPressesLeft = (_PA.f_pressLimited && !_PA.li_presses.isMin()); 
+            bool _f_allowPressMethod = !_PA.f_pressLimited || _f_hasPressesLeft; // PaddleAction is NOT press-limited, OR, is press-limited AND has presses left
+
+            if (_PA.onPressActionMethod != null && _f_allowPressMethod) // PaddleAction has a "on press" button method
             {
-                _PA.onStartActionMethod(_PA); // Call the "on press" button method
+                bool _pressSucceeded = _PA.onPressActionMethod(_PA); // Call the "on press" button method
+
+                if (_PA.f_pressLimited && _pressSucceeded) // Decrement a press, ONLY if action succeeded
+                {
+                    _PA.li_presses.Decrement();
+                }
+            }
+
+            // If PaddleAction is press-limited, and out of presses
+            if (_PA.f_pressLimited && _PA.li_presses.isMin())
+            {
+                UnassignAction(_PA); // Unassign PaddleAction which ran out of presses
             }
 
             _PA.f_held = true; // Set flag to consider button as "held" only AFTER calling the method assigned to first frame press
@@ -197,7 +337,7 @@ public class Paddle : MonoBehaviour
     /// <summary>
     /// Potentially call PaddleAction button "on release" method
     /// </summary>
-    protected void OnPaddleActionCancel(PaddleAction _PA)
+    protected void OnPaddleActionRelease(PaddleAction _PA)
     {
         if (_PA == null) return; // PaddleAction not assigned
 
@@ -205,9 +345,9 @@ public class Paddle : MonoBehaviour
         {
             _PA.f_held = false; // UNset flag to consider button as "held" only BEFORE calling the method assigned to button release
 
-            if (_PA.onCancelActionMethod != null) // PaddleAction has a "on release" button method
+            if (_PA.onReleaseActionMethod != null) // PaddleAction has a "on release" button method
             {
-                _PA.onCancelActionMethod(_PA); // Call the "on release" button method
+                _PA.onReleaseActionMethod(_PA); // Call the "on release" button method
             }
         }
 
@@ -225,6 +365,22 @@ public class Paddle : MonoBehaviour
         if (_PA.duringPhysicsMethod != null) // PaddleAction has a "during physics" method
         {
             _PA.duringPhysicsMethod(_PA); // Call the "during physics" button method every physics frame
+        }
+
+        // Count down a timer, if PaddleAction is duration-limited
+        if (_PA.f_durationLimited)
+        {
+            _PA.li_duration.DecrementBy(Time.fixedDeltaTime);
+            if (_PA.li_duration.isMin()) // Duration finished
+            {
+                UnassignAction(_PA); // Unassign PaddleAction which ran out of time
+            }
+        }
+
+        // Unassign PaddleAction, which previously delayed unassignment
+        if (_PA.f_forceUnassignment)
+        {
+            UnassignAction(_PA);
         }
     }
 
@@ -247,13 +403,23 @@ public class Paddle : MonoBehaviour
     /// </summary>
     protected void AssignNextAction(PaddleAction _PA)
     {
+        // Next PaddleAction to assign is ALREADY assigned, so simply restore the current one
+        if (_PA != PA_Empty && (CurrActionOne == _PA || CurrActionTwo == _PA))
+        {
+            _PA.Restore(); // Restore (presses/duration)
+            return;
+        }
+
+        // Next PaddleAction is NOT already assigned, so assign to the next ready action slot
         if (assignNextActionAsOne)
         {
-            CurrActionOne = _PA;
+            CurrActionOne?.Reset(); // Reset old
+            CurrActionOne = _PA; // Assign new
         }
         else
         {
-            CurrActionTwo = _PA;
+            CurrActionTwo?.Reset(); // Reset old
+            CurrActionTwo = _PA; // Assign new
         }
 
         UpdatePaddleActionIcons(_PA); // Update PaddleActionIcons of newly assigned PaddleAction
@@ -264,20 +430,29 @@ public class Paddle : MonoBehaviour
     /// <summary>
     /// Assigns the next PaddleAction to either ActionOne or ActionTwo
     /// </summary>
-    protected void UnassignAction(PaddleAction _PA)
+    /// <returns>Whether or not PaddleAction was successfully unassigned</returns>
+    protected bool UnassignAction(PaddleAction _PA)
     {
+        if (!_PA.f_forceUnassignment && _PA.CheckDelayUnassign())
+        {
+            return false; // Return false if PaddleAction is in the middle of some action and can't yet be unassigned
+        }
+
+        // Reset current PaddleAction
+        _PA.Reset();
+
         if (_PA == CurrActionOne)
         {
             CurrActionOne = PA_Empty;
+            UpdatePaddleActionIcons(CurrActionOne);
         }
         else// if (_PA == CurrActionTwo)
         {
             CurrActionTwo = PA_Empty;
+            UpdatePaddleActionIcons(CurrActionTwo);
         }
 
-        _PA.f_held = false; // Unset held flag (since this action is being unassigned and won't trip the OnPaddleActionCancel() method)
-
-        UpdatePaddleActionIcons(_PA); // Update PaddleActionIcons of newly unassigned PaddleAction
+        return true;
     }
 
     /// <summary>
@@ -447,7 +622,7 @@ public class Paddle : MonoBehaviour
 
         foreach(PaddleAction _PA in list_PA) // Make sure each PaddleAction is reset to default values
         {
-            _PA.f_held = false;
+            _PA.Reset();
         }
 
         // Reset sprites
@@ -469,9 +644,10 @@ public class Paddle : MonoBehaviour
      *********************************************************************************************************************************************************************************/
     #region PaddleAction Methods
     /// <summary>
-    /// Start (on press) of PaddleAction Magnet. Shoot Ball forward
+    /// On press (of button) of PaddleAction Magnet. Shoot Ball forward.
     /// </summary>
-    protected void PaddleActionMagnetStart(PaddleAction _PA)
+    /// <returns>Returns true</returns>
+    protected bool PaddleActionMagnetPress(PaddleAction _PA)
     {
         PaddleActionMagnet _PA_Magnet = (PaddleActionMagnet)_PA; // Cast base PaddleAction in PaddleActionMagnet
 
@@ -490,6 +666,8 @@ public class Paddle : MonoBehaviour
         {
             UnassignAction(_PA_Magnet);
         }
+
+        return true;
     }
 
     /// <summary>
@@ -503,9 +681,9 @@ public class Paddle : MonoBehaviour
     }
 
     /// <summary>
-    /// Cancel (on release) of PaddleAction Magnet. Turn back on magnet
+    /// On release (of button) of PaddleAction Magnet. Turn back on magnet
     /// </summary>
-    protected void PaddleActionMagnetCancel(PaddleAction _PA)
+    protected void PaddleActionMagnetRelease(PaddleAction _PA)
     {
         PaddleActionMagnet _PA_Magnet = (PaddleActionMagnet)_PA; // Cast base PaddleAction in PaddleActionMagnet
 
@@ -553,20 +731,23 @@ public class Paddle : MonoBehaviour
     }
 
     /// <summary>
-    /// Start (on press) of PaddleAction Slam
+    /// On press (of button) of PaddleAction Slam. Initiate a "Slam" movement, moving Paddle forward
     /// </summary>
-    protected void PaddleActionSlamStart(PaddleAction _PA)
+    /// <returns>Returns whether or not Slam was actually initiated</returns>
+    protected bool PaddleActionSlamPress(PaddleAction _PA)
     {
         PaddleActionSlam _PA_Slam = (PaddleActionSlam)_PA; // Cast base PaddleAction in PaddleActionSlam
 
         if (_PA_Slam.currState != PaddleActionSlam.SlamState.IDLE)
         {
-            return; // Not idle, so do nothing
+            return false; // Not IDLE, so do not initiate a Slam
         }
 
         _PA_Slam.beforeSlamPos = transform.position;
         _PA_Slam.currState = PaddleActionSlam.SlamState.SLAMMING; // Begin slam
         c_rb.velocity += (_PA_Slam.slamInitialVel * dirToCenter);
+
+        return true;
     }
 
     /// <summary>
