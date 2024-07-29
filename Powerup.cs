@@ -36,8 +36,7 @@ public class Powerup : MonoBehaviour
         c_rb.velocity = powerUpMoveSpeed * new Vector2(powerUpXDir, 0) * Time.fixedDeltaTime;
 
         // Destroy Powerup if offscreen
-        var _screenPos = Camera.main.WorldToScreenPoint(transform.position);
-        if (_screenPos.x <= 0 || _screenPos.x > Screen.width)
+        if (Utilities.IsPosOffScreen(transform.position))
         {
             ManagerPowerup.Instance.OnPowerupOffScreen(this);
         }

@@ -5,12 +5,6 @@ using UnityEngine.InputSystem;
 
 public class PaddleLeft : Paddle
 {
-    // PaddleAction Variables
-    private PaddleAction currPaddleLeftActionOne = null;
-    private PaddleAction currPaddleLeftActionTwo = null;
-
-    private Vector2 paddleLeftInputVector;
-
     private new void Awake()
     {
         base.Awake();
@@ -45,73 +39,28 @@ public class PaddleLeft : Paddle
     #region Private Methods
     private void OnMovePaddleLeftPerformed(InputAction.CallbackContext callbackContext)
     {
-        paddleLeftInputVector = callbackContext.ReadValue<Vector2>();
+        paddleInputVector = callbackContext.ReadValue<Vector2>();
     }
     private void OnMovePaddleLeftReleased(InputAction.CallbackContext callbackContext)
     {
-        paddleLeftInputVector = Vector2.zero;
+        paddleInputVector = Vector2.zero;
     }
 
     private void OnPaddleLeftActionOnePressed(InputAction.CallbackContext callbackContext)
     {
-        OnPaddleActionPress(currPaddleLeftActionOne);
+        OnPaddleActionPress(currActionOne);
     }
     private void OnPaddleLeftActionOneReleased(InputAction.CallbackContext callbackContext)
     {
-        OnPaddleActionRelease(currPaddleLeftActionOne);
+        OnPaddleActionRelease(currActionOne);
     }
     private void OnPaddleLeftActionTwoPressed(InputAction.CallbackContext callbackContext)
     {
-        OnPaddleActionPress(currPaddleLeftActionTwo);
+        OnPaddleActionPress(currActionTwo);
     }
     private void OnPaddleLeftActionTwoReleased(InputAction.CallbackContext callbackContext)
     {
-        OnPaddleActionRelease(currPaddleLeftActionTwo);
-    }
-    #endregion
-
-    /*********************************************************************************************************************************************************************************
-     * Override parent Methods
-     *********************************************************************************************************************************************************************************/
-    #region Override Methods
-    /// <summary>
-    /// Move the Paddle in the direction captured by the input vector
-    /// </summary>
-    protected override void MovePaddle()
-    {
-        c_rb.velocity = paddleLeftInputVector * paddleMoveSpeed;
-    }
-
-    /// <summary>
-    /// Get the current PaddleActionOne of this particular Paddle
-    /// </summary>
-    protected override PaddleAction GetPaddleActionOne()
-    {
-        return currPaddleLeftActionOne;
-    }
-
-    /// <summary>
-    /// Get the current PaddleActionTwo of this particular Paddle
-    /// </summary>
-    protected override PaddleAction GetPaddleActionTwo()
-    {
-        return currPaddleLeftActionTwo;
-    }
-
-    /// <summary>
-    /// Set the current PaddleActionOne of this particular Paddle
-    /// </summary>
-    protected override void SetPaddleActionOne(PaddleAction _PA)
-    {
-        currPaddleLeftActionOne = _PA;
-    }
-
-    /// <summary>
-    /// Set the current PaddleActionTwo of this particular Paddle
-    /// </summary>
-    protected override void SetPaddleActionTwo(PaddleAction _PA)
-    {
-        currPaddleLeftActionTwo = _PA;
+        OnPaddleActionRelease(currActionTwo);
     }
     #endregion
 }

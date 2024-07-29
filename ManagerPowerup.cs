@@ -30,6 +30,7 @@ public class ManagerPowerup : MonoBehaviour
         PaddleMagnet,
         PaddleMagnetOnce,
         PaddleSlam,
+        PaddleGhostPaddle,
 
         BallSplit,
     }
@@ -40,6 +41,7 @@ public class ManagerPowerup : MonoBehaviour
     // Sprites of each Powerup
     [SerializeField] private Sprite spr_magnet;
     [SerializeField] private Sprite spr_slam;
+    [SerializeField] private Sprite spr_ghostPaddle;
     [SerializeField] private Sprite spr_ballSplit;
 
     // PowerupDropEngine
@@ -183,6 +185,9 @@ public class ManagerPowerup : MonoBehaviour
 
             case PowerupType.PaddleSlam:
                 return spr_slam;
+
+            case PowerupType.PaddleGhostPaddle:
+                return spr_ghostPaddle;
 
             case PowerupType.BallSplit:
                 return spr_ballSplit;

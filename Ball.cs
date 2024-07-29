@@ -11,8 +11,9 @@ public class Ball : MonoBehaviour
     private TrailRenderer c_trailRenderer;
 
     // Movement variables
-    [SerializeField] private float baseMoveSpeed = 8f;
+    [SerializeField] private float baseMoveSpeed = 5f;
     private float currMoveSpeed;
+    private float extraHorizontalSpeedOnCollision = 2f;
 
     // Ball state variables
     public enum BallState { NORMAL, MAGNETIZED, };
@@ -307,20 +308,29 @@ public class Ball : MonoBehaviour
         OnCollisionDoSlow(); // Potentially slow down Ball on collision with anything
 
         // Did Ball hit Paddle?
-        if (collision.gameObject.TryGetComponent<Paddle>(out Paddle _rbPaddle))
+        if (collision.gameObject.TryGetComponent<Paddle>(out Paddle _paddle))
         {
-            Vector2 _velInfluence = _rbPaddle.GetPaddleInfluenceVelocityOnBallCollide(); // Get the Paddle velocity that can influence the Ball velocity
+            Vector2 _velInfluence = _paddle.GetPaddleInfluenceVelocityOnBallCollide(); // Get the Paddle velocity that can influence the Ball velocity
             float _y_vel_influence = _velInfluence.y / 4.0f;
             float _x_vel_influence = _velInfluence.x;
 
-            if (Mathf.Abs(_x_vel_influence) > 0) // If Paddle imparts x velocity (such as if in slam movement)
+            if (Mathf.Abs(_x_vel_influence) > 1f) // If Paddle imparts great x velocity (such as if in PaddleActionSlam)
             {
                 OnCollisionSpeedMax(); // Speed up ball
             }
+            else
+            {
+                // On collision with Paddle, slightly give Ball more horizontal speed than physically possible, to reduce scenario where Ball ends
+                // up moving almost vertically across the level
+                _x_vel_influence = _paddle.GetDirToCenter() * extraHorizontalSpeedOnCollision;
+            }
 
-            c_rb.velocity = new Vector2(c_rb.velocity.x, c_rb.velocity.y + _y_vel_influence);
+            c_rb.velocity = new Vector2(c_rb.velocity.x + _x_vel_influence, c_rb.velocity.y + _y_vel_influence); // Set Ball velocity
 
-            OnPaddleHitResetScoreMultiplier(); // Reset ball score multiplayer
+            if (_paddle.IsBallScoreMultiplierResetter())
+            {
+                OnPaddleHitResetScoreMultiplier(); // Reset Ball score multiplier on hit with "normal" Paddle
+            }
         }
 
         // Did Ball hit anything?

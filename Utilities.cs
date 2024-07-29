@@ -1,6 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
-using Unity.VisualScripting;
+using System.Xml.Linq;
 using UnityEngine;
 
 public static class Utilities
@@ -44,6 +44,19 @@ public static class Utilities
     public static bool IsBoundsInsideBounds(Bounds _candy, Bounds _container)
     {
         return _container.Contains(_candy.min) && _container.Contains(_candy.max); // Consider within if bottom-left and top-right corner are both contained
+    }
+
+    /// <summary>
+    /// Returns whether or not a point is off screen (main camera)
+    /// </summary>
+    /// <param name="_worldPos">World position, to be translated to screen position</param>
+    /// <returns>Whether or not point is off screen</returns>
+    public static bool IsPosOffScreen(Vector2 _worldPos)
+    {
+        var _screenPos = Camera.main.WorldToScreenPoint(_worldPos);
+        return (_screenPos.x < 0 || _screenPos.x > Screen.width      // Off left or right
+                ||
+                _screenPos.y < 0 || _screenPos.y > Screen.height);   // Off bottom or top
     }
 
     /// <summary>

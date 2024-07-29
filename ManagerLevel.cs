@@ -181,8 +181,9 @@ public class ManagerLevel : MonoBehaviour
                 _dict_pwrType_weight = new Dictionary<ManagerPowerup.PowerupType, int>()
                 {
                     {ManagerPowerup.PowerupType.None, 100},
-                    {ManagerPowerup.PowerupType.PaddleMagnet, 10},
+                    {ManagerPowerup.PowerupType.PaddleMagnet, 8},
                     {ManagerPowerup.PowerupType.PaddleSlam, 20},
+                    {ManagerPowerup.PowerupType.PaddleGhostPaddle, 20},
                     {ManagerPowerup.PowerupType.BallSplit, 30},
                 };
                 break;
