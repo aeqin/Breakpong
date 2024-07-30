@@ -28,7 +28,7 @@ public class PaddleGhost : Paddle
     {
         ghostOfPaddle = _ghostOfPaddle;
         dirToCenter = ghostOfPaddle.GetDirToCenter();
-        c_boxCol.size = ghostOfPaddle.GetBoxColliderSize(); // Make sure PaddleGhost is the same size as its spawner Paddle
+        SetPaddleSize(ghostOfPaddle.GetSpriteRendererSize()); // Make sure PaddleGhost is the same size as its spawner Paddle
         c_spriteRenderer.color = new Color(1f, 1f, 1f, 0.5f); // Make sprite more transparent than normal Paddle
     }
 

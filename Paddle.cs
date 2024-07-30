@@ -15,6 +15,7 @@ public class Paddle : MonoBehaviour
     [SerializeField] protected float paddleMoveSpeed = 10f;
     protected int dirToCenter; // Either -1 or 1 (direction from Paddle to center of screen)
     protected Vector2 initialPaddlePos;
+    protected Vector2 initialPaddleSize;
     protected Vector2 paddleInputVector;
     protected enum PaddleMoveState { DEFAULT, IGNORE, };
     protected PaddleMoveState currPaddleMoveState = PaddleMoveState.DEFAULT;
@@ -162,6 +163,48 @@ public class Paddle : MonoBehaviour
         }
     }
 
+    // PaddleAction GrowPaddle Variables
+    protected PaddleAction PA_GrowPaddle;
+    protected class PaddleActionGrowPaddle : PaddleAction
+    {
+        public float growthMultiplierPerGrow = 2.0f; // How much to grow Paddle vertical length by
+        public int maxVerticalGrows = 4; // Maximum grows
+        public PaddleActionGrowPaddle(Sprite _sUP, Sprite _sP, int _nP = -1, float _aD = -1f) : base(_sUP, _sP, _nP, _aD) { }
+
+        /// <summary>
+        /// Restores this PaddleAction's presses / durations
+        /// </summary>
+        public override void Restore(bool _f_restoreDuringReset = false)
+        {
+            base.Restore(_f_restoreDuringReset);
+            if (!_f_restoreDuringReset) // If Restore() was called NOT during a Reset() of PaddleAction, then grow Paddle again
+            {
+                onAssignMethod(this); // GrowPaddle grows Paddle on call of "on assign" method
+            }
+        }
+    }
+
+    // PaddleAction ShrinkPaddle Variables
+    protected PaddleAction PA_ShrinkPaddle;
+    protected class PaddleActionShrinkPaddle : PaddleAction
+    {
+        public float shrinkageMultiplierPerShrink = 0.5f; // How much to shrink Paddle vertical length by
+        public int minVerticalShrinks = 3; // Maximum shrinks
+        public PaddleActionShrinkPaddle(Sprite _sUP, Sprite _sP, int _nP = -1, float _aD = -1f) : base(_sUP, _sP, _nP, _aD) { }
+
+        /// <summary>
+        /// Restores this PaddleAction's presses / durations
+        /// </summary>
+        public override void Restore(bool _f_restoreDuringReset = false)
+        {
+            base.Restore(_f_restoreDuringReset);
+            if (!_f_restoreDuringReset) // If Restore() was called NOT during a Reset() of PaddleAction, then shrink Paddle again
+            {
+                onAssignMethod(this); // ShrinkPaddle shrinks Paddle on call of "on assign" method
+            }
+        }
+    }
+
     /// <summary>
     /// Class used to hold the methods for a PaddleAction depending on event if the action button is pressed, held, release, or collision, etc.
     /// </summary>
@@ -249,7 +292,7 @@ public class Paddle : MonoBehaviour
         /// <summary>
         /// Restores this PaddleAction's presses / durations
         /// </summary>
-        public virtual void Restore()
+        public virtual void Restore(bool _f_restoreDuringReset = false)
         {
             f_delayedUnassignment = false;
             f_forceUnassignment = false;
@@ -263,7 +306,7 @@ public class Paddle : MonoBehaviour
         public virtual void Reset()
         {
             f_held = false;
-            Restore();
+            Restore(true);
         }
     }
     #endregion
@@ -275,6 +318,7 @@ public class Paddle : MonoBehaviour
         c_spriteRenderer = GetComponent<SpriteRenderer>();
         c_boxCol = GetComponent<BoxCollider2D>();
         initialPaddlePos = transform.position;
+        initialPaddleSize = c_spriteRenderer.size;
 
         CreatePaddleActions();
     }
@@ -342,12 +386,24 @@ public class Paddle : MonoBehaviour
             duringPhysicsMethod = PaddleActionGhostPaddleDuring,
             onUnassignMethod = PaddleActionGhostPaddleUnassign,
         };
+        PA_GrowPaddle = new PaddleActionGrowPaddle(pf_PAIconSprLib.spr_GrowPaddle, null, -1, 20f)
+        {
+            onAssignMethod = PaddleActionGrowPaddleAssign,
+            onUnassignMethod = PaddleActionGrowPaddleUnassign,
+        };
+        PA_ShrinkPaddle = new PaddleActionShrinkPaddle(pf_PAIconSprLib.spr_ShrinkPaddle, null, -1, 20f)
+        {
+            onAssignMethod = PaddleActionShrinkPaddleAssign,
+            onUnassignMethod = PaddleActionShrinkPaddleUnassign,
+        };
 
         list_PA.Add(PA_Empty);
         list_PA.Add(PA_Magnet);
         list_PA.Add(PA_Magnet_OneUse);
         list_PA.Add(PA_Slam);
         list_PA.Add(PA_GhostPaddle);
+        list_PA.Add(PA_GrowPaddle);
+        list_PA.Add(PA_ShrinkPaddle);
     }
 
     /// <summary>
@@ -615,6 +671,64 @@ public class Paddle : MonoBehaviour
             c_rb.MovePosition(_nextFramePaddleBounds.center); // Set position at edge of bounds
         }
     }
+
+    protected void SetPaddleSize(Vector2 _newSize)
+    {
+        c_spriteRenderer.size = _newSize; // Setting SpriteRenderer size will automatically set BoxCollider size (since it is set to auto tile)
+        
+        // Make sure that growing Paddle collider will not grow past Level bounds (and so get the Paddle stuck)
+        SetPaddlePosWithinLevelBounds();
+    }
+
+    /// <summary>
+    /// If Paddle is within Level bounds, do nothing. Otherwise, set Paddle position so that it is within Level bounds (try to move the least amount)
+    /// </summary>
+    protected void SetPaddlePosWithinLevelBounds()
+    {
+        if (ManagerLevel.Instance.IsBoundsInsideLevel(c_spriteRenderer.bounds)) // Paddle safely within Level
+        {
+            return;
+        }
+
+        // Check too see if Paddle is too big by placing a temporary bounds in the center of the Level
+        Bounds _paddleTooBigCheck = new Bounds(Vector2.zero, c_spriteRenderer.size);
+        if (!ManagerLevel.Instance.IsBoundsInsideLevel(_paddleTooBigCheck))
+        {
+            Debug.LogError("Paddle:SetPaddlePosWithinLevelBounds(), Paddle is too big for level");
+            return;
+        }
+
+        // Move Paddle into Level
+        Bounds _levelBounds = ManagerLevel.Instance.GetLevelBounds();
+        float _levelTop = _levelBounds.center.y + _levelBounds.size.y / 2f;
+        float _levelBot = _levelBounds.center.y - _levelBounds.size.y / 2f;
+        float _levelLeft = _levelBounds.center.x - _levelBounds.size.x / 2f;
+        float _levelRight = _levelBounds.center.x + _levelBounds.size.x / 2f;
+        float _paddleTop = transform.position.y + c_spriteRenderer.size.y / 2f;
+        float _paddleBot = transform.position.y - c_spriteRenderer.size.y / 2f;
+        float _paddleLeft = transform.position.x - c_spriteRenderer.size.x / 2f;
+        float _paddleRight = transform.position.x + c_spriteRenderer.size.x / 2f;
+
+        Vector2 _adjustment = Vector2.zero;
+        if (_paddleTop > _levelTop)
+        {
+            _adjustment += new Vector2(0, _levelTop - _paddleTop); // Move Paddle down
+        }
+        if (_paddleBot < _levelBot)
+        {
+            _adjustment += new Vector2(0, _levelBot - _paddleBot); // Move Paddle up
+        }
+
+        if (_paddleLeft < _levelLeft)
+        {
+            _adjustment += new Vector2(_levelLeft - _paddleLeft, 0); // Move Paddle right
+        }
+        if (_paddleRight > _levelRight)
+        {
+            _adjustment += new Vector2(_levelRight - _paddleRight, 0);
+        }
+        transform.position = (Vector2)transform.position + _adjustment; // Move Paddle left
+    }
     #endregion
 
     /*********************************************************************************************************************************************************************************
@@ -630,7 +744,15 @@ public class Paddle : MonoBehaviour
     }
 
     /// <summary>
-    /// Get the box collider size of this Paddle
+    /// Get the SpriteRenderer size of this Paddle
+    /// </summary>
+    public Vector2 GetSpriteRendererSize()
+    {
+        return c_spriteRenderer.size;
+    }
+
+    /// <summary>
+    /// Get the BoxCollider size of this Paddle
     /// </summary>
     public Vector2 GetBoxColliderSize()
     {
@@ -721,7 +843,12 @@ public class Paddle : MonoBehaviour
             case ManagerPowerup.PowerupType.PaddleGhostPaddle:
                 AssignNextAction(PA_GhostPaddle);
                 break;
-
+            case ManagerPowerup.PowerupType.PaddleGrowPaddle:
+                AssignNextAction(PA_GrowPaddle);
+                break;
+            case ManagerPowerup.PowerupType.PaddleShrinkPaddle:
+                AssignNextAction(PA_ShrinkPaddle);
+                break;
 
             default:
                 Debug.LogError("Add case to Paddle:AssignActionFromPowerup() for Powerup." + _powerUp.ToString());
@@ -1023,6 +1150,54 @@ public class Paddle : MonoBehaviour
         }
 
         RegainInputControl(); // Have this Paddle respond to movement inputs again
+    }
+
+    /// <summary>
+    /// On assign PaddleAction GrowPaddle. Increase vertical length of Paddle
+    /// </summary>
+    protected void PaddleActionGrowPaddleAssign(PaddleAction _PA)
+    {
+        PaddleActionGrowPaddle _PA_GrowPaddle = (PaddleActionGrowPaddle)_PA; // Cast base PaddleAction into PaddleActionGrowPaddle
+
+        // In case Paddle is already shrunk, restore the duration on PaddleActionShrinkPaddle, otherwise, when duration runs out Paddle is set to normal size
+        if (currActionOne == PA_ShrinkPaddle) currActionOne.Restore(true); // Just Restore duration, don't shrink
+        else if (currActionTwo == PA_ShrinkPaddle) currActionTwo.Restore(true);
+
+        float _maxVerticalLength = initialPaddleSize.y * _PA_GrowPaddle.maxVerticalGrows;
+        float _nextVerticalLength = Mathf.Clamp(c_spriteRenderer.size.y * _PA_GrowPaddle.growthMultiplierPerGrow, 0, _maxVerticalLength);
+        SetPaddleSize(new Vector2(c_spriteRenderer.size.x, _nextVerticalLength));
+    }
+
+    /// <summary>
+    /// On unassign PaddleAction GrowPaddle. Revert vertical length of Paddle back to original length
+    /// </summary>
+    protected void PaddleActionGrowPaddleUnassign(PaddleAction _PA)
+    {
+        SetPaddleSize(initialPaddleSize);
+    }
+
+    /// <summary>
+    /// On assign PaddleAction ShrinkPaddle. Increase vertical length of Paddle
+    /// </summary>
+    protected void PaddleActionShrinkPaddleAssign(PaddleAction _PA)
+    {
+        PaddleActionShrinkPaddle _PA_ShrinkPaddle = (PaddleActionShrinkPaddle)_PA; // Cast base PaddleAction into PaddleActionShrinkPaddle
+
+        // In case Paddle is already grown, restore the duration on PaddleActionGrowPaddle, otherwise, when duration runs out Paddle is set to normal size
+        if (currActionOne == PA_GrowPaddle) currActionOne.Restore(true); // Just Restore duration, don't grow
+        else if (currActionTwo == PA_GrowPaddle) currActionTwo.Restore(true);
+
+        float _minVerticalLength = initialPaddleSize.y / _PA_ShrinkPaddle.minVerticalShrinks;
+        float _nextVerticalLength = Mathf.Clamp(c_spriteRenderer.size.y * _PA_ShrinkPaddle.shrinkageMultiplierPerShrink, _minVerticalLength, 9999);
+        SetPaddleSize(new Vector2(c_spriteRenderer.size.x, _nextVerticalLength));
+    }
+
+    /// <summary>
+    /// On unassign PaddleAction ShrinkPaddle. Revert vertical length of Paddle back to original length
+    /// </summary>
+    protected void PaddleActionShrinkPaddleUnassign(PaddleAction _PA)
+    {
+        SetPaddleSize(initialPaddleSize);
     }
     #endregion
 

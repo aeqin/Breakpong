@@ -17,4 +17,6 @@ public class PaddleActionIconSpriteLib : MonoBehaviour
     [SerializeField] public Sprite spr_MagnetOFF;
     [SerializeField] public Sprite spr_Slam;
     [SerializeField] public Sprite spr_GhostPaddle;
+    [SerializeField] public Sprite spr_GrowPaddle;
+    [SerializeField] public Sprite spr_ShrinkPaddle;
 }

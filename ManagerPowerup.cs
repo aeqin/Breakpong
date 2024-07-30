@@ -31,6 +31,8 @@ public class ManagerPowerup : MonoBehaviour
         PaddleMagnetOnce,
         PaddleSlam,
         PaddleGhostPaddle,
+        PaddleGrowPaddle,
+        PaddleShrinkPaddle,
 
         BallSplit,
     }
@@ -42,6 +44,8 @@ public class ManagerPowerup : MonoBehaviour
     [SerializeField] private Sprite spr_magnet;
     [SerializeField] private Sprite spr_slam;
     [SerializeField] private Sprite spr_ghostPaddle;
+    [SerializeField] private Sprite spr_growPaddle;
+    [SerializeField] private Sprite spr_shrinkPaddle;
     [SerializeField] private Sprite spr_ballSplit;
 
     // PowerupDropEngine
@@ -189,6 +193,12 @@ public class ManagerPowerup : MonoBehaviour
             case PowerupType.PaddleGhostPaddle:
                 return spr_ghostPaddle;
 
+            case PowerupType.PaddleGrowPaddle:
+                return spr_growPaddle;
+
+            case PowerupType.PaddleShrinkPaddle:
+                return spr_shrinkPaddle;
+
             case PowerupType.BallSplit:
                 return spr_ballSplit;
 
@@ -261,6 +271,8 @@ public class ManagerPowerup : MonoBehaviour
     public void ResetPowerupDropEngine(Dictionary<PowerupType, int> _dict_pwrType_weight)
     {
         currPowerupDropEngine = new PowerupDropEngine(_dict_pwrType_weight); // Assign new weighted drop table for current level
+
+        currPowerupDropEngine.DebugPowerupDroprates();
     }
     #endregion
 }
