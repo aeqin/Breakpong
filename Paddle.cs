@@ -26,6 +26,9 @@ public class Paddle : MonoBehaviour
     [SerializeField] protected PaddleActionIcon pf_ActionOneBackground;
     [SerializeField] protected PaddleActionIcon pf_ActionTwoBackground;
     [SerializeField] protected PaddleActionIconSpriteLib pf_PAIconSprLib;
+    protected RadialLineRenderer actionOneRadial; // Displays duration/presses left of PaddleAction 1
+    protected RadialLineRenderer actionTwoRadial; // Displays duration/presses left of PaddleAction 2
+    protected float radialSize = 0.4f; 
 
     // PaddleAction Variables
     #region PaddleAction Definitions
@@ -354,6 +357,11 @@ public class Paddle : MonoBehaviour
     /// </summary>
     protected virtual void CreatePaddleActions()
     {
+        // Create each RadialLineRenderer that will be child of each PaddleActionIcon (so transform is the same), which will be used to display duration/presses left
+        actionOneRadial = Instantiate(pf_PAIconSprLib.pf_RadialLineRenderer, pf_ActionOneIcon.transform);
+        actionTwoRadial = Instantiate(pf_PAIconSprLib.pf_RadialLineRenderer, pf_ActionTwoIcon.transform);
+
+        // Create each PaddleAction
         PA_Empty = new PaddleActionEmpty(pf_PAIconSprLib.spr_Empty, null, -1, -1f);
         PA_Magnet = new PaddleActionMagnet(pf_PAIconSprLib.spr_Magnet, pf_PAIconSprLib.spr_MagnetOFF, -1, 20f)
         {
@@ -495,6 +503,7 @@ public class Paddle : MonoBehaviour
             {
                 UnassignAction(_PA); // Unassign PaddleAction which ran out of time
             }
+            UpdatePaddleActionIcons(_PA); // Update RadialLineRenderer
         }
 
         // Unassign PaddleAction, which previously delayed unassignment
@@ -556,6 +565,7 @@ public class Paddle : MonoBehaviour
         if (_PA != PA_Empty && (currActionOne == _PA || currActionTwo == _PA))
         {
             _PA.Restore(); // Restore (presses/duration)
+            UpdatePaddleActionIcons(_PA); // Update RadialLineRenderer
             return true;
         }
 
@@ -567,6 +577,7 @@ public class Paddle : MonoBehaviour
                 return false; // Could not unassign old PaddleAction, so return false
             }
             currActionOne = _PA; // Assign new
+            actionOneRadial.DrawRadialBar(radialSize, GetNumSegmentsForRadial(_PA));
         }
         else
         {
@@ -575,6 +586,7 @@ public class Paddle : MonoBehaviour
                 return false; // Could not unassign old PaddleAction, so return false
             }
             currActionTwo = _PA; // Assign new
+            actionTwoRadial.DrawRadialBar(radialSize, GetNumSegmentsForRadial(_PA));
         }
         assignNextActionAsOne = !assignNextActionAsOne; // Flip flag
 
@@ -617,19 +629,66 @@ public class Paddle : MonoBehaviour
     }
 
     /// <summary>
+    /// If PaddleAction is duration limited, return 1. If PaddleAction is press limited, return # of presses. Otherwise, return 0
+    /// </summary>
+    protected int GetNumSegmentsForRadial(PaddleAction _PA)
+    {
+        if (_PA.f_durationLimited) return 1;
+        else if (_PA.f_pressLimited) return _PA.li_presses.max;
+        
+        return 0;
+    }
+
+    /// <summary>
     /// Depending on the PaddleAction provided, update the linked Icons
     /// </summary>
     protected virtual void UpdatePaddleActionIcons(PaddleAction _PA)
     {
         if (currActionOne == _PA)
         {
+            // Update sprites representing current PaddleAction 1
             pf_ActionOneIcon.SetSpriteAs(_PA.GetSpriteByPressed());
             pf_ActionOneBackground.SetPressedSpriteAs(_PA.f_held);
+
+            // Update RadialLineRenderer representing PaddleAction 1's duration/presses left
+            if (_PA == PA_Empty)
+            {
+                actionOneRadial.ClearRadialBar();
+            }
+            else
+            {
+                if (_PA.f_durationLimited)
+                {
+                    actionOneRadial.UpdateRadialBarByPercent(_PA.li_duration.GetPercentage());
+                }
+                else if (_PA.f_pressLimited)
+                {
+                    actionOneRadial.UpdateRadialBarByPercent(_PA.li_presses.GetPercentage());
+                }
+            }
         }
         if (currActionTwo == _PA)
         {
+            // Update sprites representing current PaddleAction 2
             pf_ActionTwoIcon.SetSpriteAs(_PA.GetSpriteByPressed());
             pf_ActionTwoBackground.SetPressedSpriteAs(_PA.f_held);
+
+            // Update RadialLineRenderer representing PaddleAction 2's duration/presses left
+            if (_PA == PA_Empty)
+            {
+                actionTwoRadial.ClearRadialBar();
+            }
+            else
+            {
+                if (_PA.f_durationLimited)
+                {
+                    actionTwoRadial.UpdateRadialBarByPercent(_PA.li_duration.GetPercentage());
+                }
+                else if (_PA.f_pressLimited)
+                {
+                    actionTwoRadial.UpdateRadialBarByPercent(_PA.li_presses.GetPercentage());
+                }
+            }
         }
     }
 

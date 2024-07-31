@@ -78,6 +78,14 @@ public class LimitInt
     {
         return curr == max;
     }
+
+    /// <summary>
+    /// Returns the current value percentage of max value
+    /// </summary>
+    public float GetPercentage()
+    {
+        return (float)curr / max;
+    }
 }
 
 /// <summary>
@@ -131,5 +139,13 @@ public class LimitFloat
     public bool isMax()
     {
         return curr == max;
+    }
+
+    /// <summary>
+    /// Returns the current value percentage of max value
+    /// </summary>
+    public float GetPercentage()
+    {
+        return curr / max;
     }
 }

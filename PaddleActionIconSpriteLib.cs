@@ -19,4 +19,6 @@ public class PaddleActionIconSpriteLib : MonoBehaviour
     [SerializeField] public Sprite spr_GhostPaddle;
     [SerializeField] public Sprite spr_GrowPaddle;
     [SerializeField] public Sprite spr_ShrinkPaddle;
+
+    [SerializeField] public RadialLineRenderer pf_RadialLineRenderer; // Used to display duration/presses left around each icon
 }

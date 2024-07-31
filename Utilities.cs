@@ -5,6 +5,8 @@ using UnityEngine;
 
 public static class Utilities
 {
+    public const float TAU = Mathf.PI * 2;
+
     /// <summary>
     /// Given a value within a range, return that value linearly mapped to a second range
     /// </summary>
