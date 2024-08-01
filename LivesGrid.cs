@@ -104,7 +104,7 @@ public class LivesGrid : MonoBehaviour
         float _levelBoundsUpCenterY = _levelBoundsUpCenterPoint.y;
         float _nextLifeBallY = list_lifeBalls.Last().transform.position.y;
         float _cellSizeY = c_gridLayoutGroup.cellSize.y;
-        float _dropDistance = (_levelBoundsUpCenterY - _nextLifeBallY) - _cellSizeY / 4.0f;
+        float _dropDistance = (_levelBoundsUpCenterY - _nextLifeBallY) - _cellSizeY / 2.0f;
 
         return _dropDistance;
     }

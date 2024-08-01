@@ -101,19 +101,13 @@ public class Paddle : MonoBehaviour
         /// </summary>
         public override bool CheckDelayUnassign()
         {
-            bool _baseCheck = base.CheckDelayUnassign();
-
-            // If base method decides that PaddleAction should NOT delay unassignment, check for PaddleActionSlam specific criteria
-            if (!_baseCheck)
+            if (CurrState != SlamState.IDLE) // Paddle is currently still slamming/returning, so delay unassignment until IDLE state reached again
             {
-                if (CurrState != SlamState.IDLE) // Paddle is currently still moving, so delay unassignment until IDLE state reached again
-                {
-                    f_delayedUnassignment = true;
-                    return true; // Do delay
-                }
+                f_delayedUnassignment = true;
+                return true; // Do delay
             }
 
-            return _baseCheck;
+            return false;
         }
 
         /// <summary>
@@ -137,23 +131,17 @@ public class Paddle : MonoBehaviour
         public PaddleActionGhostPaddle(Sprite _sUP, Sprite _sP, int _nP = -1, float _aD = -1f) : base(_sUP, _sP, _nP, _aD) { }
 
         /// <summary>
-        /// Check to see if PaddleActionSlam should delay unassignment (not yet idle, means Paddle is out of position)
+        /// Check to see if PaddleActionGhostPaddle should delay unassignment (Player still controlling last spawn PaddleGhost)
         /// </summary>
         public override bool CheckDelayUnassign()
         {
-            bool _baseCheck = base.CheckDelayUnassign();
-
-            // If base method decides that PaddleAction should NOT delay unassignment, check for PaddleActionGhostPaddle specific criteria
-            if (!_baseCheck)
+            if (f_controlCurrGhost && currGhostPaddle != null) // Still currently controlling a PaddleGhost, do not unassign until Paddle regains control
             {
-                if (f_controlCurrGhost && currGhostPaddle != null) // Still currently controlling a PaddleGhost, do not unassign until Paddle regains control
-                {
-                    f_delayedUnassignment = true;
-                    return true; // Do delay
-                }
+                f_delayedUnassignment = true;
+                return true; // Do delay
             }
 
-            return _baseCheck;
+            return false;
         }
 
         /// <summary>
@@ -278,18 +266,7 @@ public class Paddle : MonoBehaviour
         /// </summary>
         public virtual bool CheckDelayUnassign()
         {
-            bool _doDelay = true; 
-
-            if (!f_pressLimited && !f_durationLimited) return false; // Don't delay if PaddleAction isn't limited
-
-            if (f_pressLimited && li_presses.isMin()) return false; // Don't delay if PaddleAction is press-limited and out of presses
-
-            if (f_durationLimited && li_duration.isMin()) return false; // Don't delay if PaddleAction is duration-limited and out of time
-
-            // Made it here, means _doDelay is true
-            f_delayedUnassignment = true;
-
-            return _doDelay;
+            return false; // On base PaddleAction, never delay. Delay check can be overridden by children
         }
 
         /// <summary>

@@ -266,9 +266,9 @@ public class ManagerLevel : MonoBehaviour
     }
 
     /// <summary>
-    /// When Brick is destroyed by a Ball, add to score. (the more Bricks that Balls destroy without hitting Paddle, the larger the score gain)
+    /// When Brick is hit by a Ball, add to score. (the more Bricks that Balls hit without hitting Paddle, the larger the score gain)
     /// </summary>
-    public void UpdateScoreOnBrickDestroyedByBall(Brick _brick, Ball _ball)
+    public void UpdateScoreOnBrickHitByBall(Brick _brick, Ball _ball)
     {
         // Update Ball score multiplier on hit with Brick
         _ball.UpdateBallScoreMultiplierOnBrickHit();

@@ -97,9 +97,20 @@ public class ManagerBrick : MonoBehaviour
     /// <param name="_spawnPos">World position of Brick</param>
     public void OnBallHitBrick(Ball _ball, Brick _brick)
     {
-        ManagerLevel.Instance.UpdateScoreOnBrickDestroyedByBall(_brick, _ball);
+        Brick.BrickDamage _result = _brick.DamageBrick();
 
-        RemoveBrick(_brick);
+        switch (_result)
+        {
+            case Brick.BrickDamage.SUCCESS:
+                ManagerLevel.Instance.UpdateScoreOnBrickHitByBall(_brick, _ball);
+                break;
+            case Brick.BrickDamage.INVINCIBLE:
+                break;
+            case Brick.BrickDamage.DEATH:
+                ManagerLevel.Instance.UpdateScoreOnBrickHitByBall(_brick, _ball);
+                RemoveBrick(_brick);
+                break;
+        }
     }
 
     /// <summary>

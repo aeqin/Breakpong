@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 
 public class Brick : MonoBehaviour
 {
@@ -10,6 +11,23 @@ public class Brick : MonoBehaviour
     [SerializeField] private ManagerPowerup.PowerupType droppedPowerupType = ManagerPowerup.PowerupType.Anything;
     private int brickBaseScore = 10;
 
+    // Brick Damage variables
+    /// <summary>
+    /// Type of damage that Brick took
+    /// </summary>
+    public enum BrickDamage
+    {
+        SUCCESS, // Did successfully damage brick
+        INVINCIBLE, // Brick was invincible
+        DEATH, // Brick died from damage
+    }
+    [SerializeField] private int maxHP = 1;
+    [SerializeField] private TextMeshPro c_HPText;
+    private LimitInt li_brickHP;
+    private bool f_isInvincible = false;
+
+    [SerializeField] private ParticleSystem pf_onBreakParticles;
+
     /// <summary>
     /// A bundle of values used to initialize a Brick. Can be used to reset the Brick when the level is over
     /// </summary>
@@ -18,18 +36,21 @@ public class Brick : MonoBehaviour
         public Vector2 spawnPos;
         public ManagerBrick.BrickType brickType;
         public ManagerPowerup.PowerupType droppedPowerupType;
+        public int maxHP;
 
-        public BrickInitializer(Vector2 _spawnPos, ManagerBrick.BrickType _brickType, ManagerPowerup.PowerupType _droppedPowerupType)
+        public BrickInitializer(Vector2 _spawnPos, ManagerBrick.BrickType _brickType, ManagerPowerup.PowerupType _droppedPowerupType, int _maxHP)
         {
             spawnPos = _spawnPos;
             brickType = _brickType;
             droppedPowerupType = _droppedPowerupType;
+            maxHP = _maxHP;
         }
     }
 
     private void Awake()
     {
         c_spriteRenderer = GetComponent<SpriteRenderer>();
+        li_brickHP = new LimitInt(maxHP, 0, maxHP);
     }
 
     /// <summary>
@@ -40,6 +61,7 @@ public class Brick : MonoBehaviour
         transform.position = _initBundle.spawnPos;
         brickType = _initBundle.brickType;
         droppedPowerupType = _initBundle.droppedPowerupType;
+        li_brickHP = new LimitInt(_initBundle.maxHP, 0, _initBundle.maxHP);
 
         UpdateSprite();
     }
@@ -65,6 +87,18 @@ public class Brick : MonoBehaviour
         {
             c_spriteRenderer.color = Color.red;
         }
+
+        c_HPText.text = GetHP().ToString(); // Display remaining HP
+    }
+
+    /// <summary>
+    /// When Brick is destroyed, play particles
+    /// </summary>
+    private void OnDeathSpawnParticles(Vector2 _spawnPos)
+    {
+        ParticleSystem _ps = Instantiate(pf_onBreakParticles, _spawnPos, Quaternion.identity);
+        ParticleSystem.MainModule _psMain = _ps.main;
+        _psMain.startColor = c_spriteRenderer.color;
     }
     #endregion
 
@@ -77,7 +111,7 @@ public class Brick : MonoBehaviour
     /// </summary>
     public BrickInitializer GetBrickInitializer()
     {
-        BrickInitializer _bundle = new BrickInitializer(transform.position, brickType, droppedPowerupType);
+        BrickInitializer _bundle = new BrickInitializer(transform.position, brickType, droppedPowerupType, li_brickHP.max);
         return _bundle;
     }
 
@@ -98,10 +132,36 @@ public class Brick : MonoBehaviour
     }
 
     /// <summary>
+    /// Return the health remaining of this Brick
+    /// </summary>
+    public int GetHP()
+    {
+        return li_brickHP.curr;
+    }
+
+    /// <summary>
+    /// Damage this Brick
+    /// </summary>
+    public BrickDamage DamageBrick()
+    {
+        if (f_isInvincible) return BrickDamage.INVINCIBLE;
+
+        li_brickHP.Decrement();
+
+        if (li_brickHP.isMin()) return BrickDamage.DEATH;
+        else
+        {
+            UpdateSprite();
+            return BrickDamage.SUCCESS;
+        }
+    }
+
+    /// <summary>
     /// Destroy this Brick, spawn a ParticleSystem
     /// </summary>
     public void DestroyBrick()
     {
+        OnDeathSpawnParticles(transform.position);
         Destroy(gameObject);
     }
     #endregion
@@ -118,7 +178,7 @@ public class Brick : MonoBehaviour
         // Did Ball hit Brick?
         if (collision.gameObject.TryGetComponent<Ball>(out Ball _ball))
         {
-            // Destroy Brick
+            // Damage & potentially destroy Brick
             ManagerBrick.Instance.OnBallHitBrick(_ball, this);
         }
     }
