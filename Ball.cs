@@ -5,10 +5,10 @@ using UnityEngine;
 
 public class Ball : MonoBehaviour
 {
-    private Rigidbody2D c_rb;
-    private CircleCollider2D c_circleCol;
-    private SpriteRenderer c_spriteRenderer;
-    private TrailRenderer c_trailRenderer;
+    protected Rigidbody2D c_rb;
+    protected CircleCollider2D c_circleCol;
+    protected SpriteRenderer c_spriteRenderer;
+    protected TrailRenderer c_trailRenderer;
 
     // Movement variables
     [SerializeField] private float baseMoveSpeed = 5f;
@@ -16,8 +16,17 @@ public class Ball : MonoBehaviour
     private float extraHorizontalSpeedOnCollision = 2f;
 
     // Ball state variables
-    public enum BallState { NORMAL, MAGNETIZED, };
+    public enum BallState { NORMAL, MAGNETIZED, }; // Mutually exclusive Ball states
     public BallState currState = BallState.NORMAL;
+    protected struct BallFlags // Ball "states" that are NOT mutually exclusive
+    {
+        public bool f_spawnSpores;
+    }
+    protected BallFlags currFlags;
+
+    // BallSpore variables
+    [SerializeField] private BallSpore pf_BallSpore;
+    private int numSporesOnSpawn = 5; // How many BallSpores should be spawned
 
     // SpeedStage variables
     private LimitInt li_collisionsBeforeSlowStage = new LimitInt(2, 0, 2);
@@ -41,7 +50,7 @@ public class Ball : MonoBehaviour
 
 
     // Start is called before the first frame update
-    void Awake()
+    protected virtual void Awake()
     {
         c_rb = GetComponent<Rigidbody2D>();
         c_circleCol = GetComponent<CircleCollider2D>();
@@ -49,11 +58,13 @@ public class Ball : MonoBehaviour
         c_trailRenderer = GetComponent<TrailRenderer>();
 
         currMoveSpeed = baseMoveSpeed;
-        c_rb.velocity = Vector3.left * currMoveSpeed;
+        c_rb.velocity = Vector3.right * currMoveSpeed;
+
+        c_trailRenderer.startWidth = c_circleCol.radius * 2.0f;
         UpdateBallColor();
     }
 
-    private void FixedUpdate()
+    protected void FixedUpdate()
     {
         switch (currState)
         {
@@ -78,10 +89,29 @@ public class Ball : MonoBehaviour
     }
 
     /*********************************************************************************************************************************************************************************
-     * Private Methods
+     * Protected Methods
      *********************************************************************************************************************************************************************************/
-    #region Private Methods
-    private void CheckWithinBounds()
+    #region Protected Methods
+    /// <summary>
+    /// Returns Ball's current flags
+    /// </summary>
+    protected BallFlags GetBallFlags()
+    {
+        return currFlags;
+    }
+
+    /// <summary>
+    /// Returns the collider of the Ball
+    /// </summary>
+    protected CircleCollider2D GetCircleCollider()
+    {
+        return c_circleCol;
+    }
+
+    /// <summary>
+    /// Potentially destroys Ball if this Ball is beyond level boundaries
+    /// </summary>
+    protected void CheckWithinBounds()
     {
         if (!ManagerLevel.Instance.IsPosInsideLevel(transform.position)) // Is Ball outside of level boundaries? (from physics shenanigans)
         {
@@ -90,9 +120,46 @@ public class Ball : MonoBehaviour
     }
 
     /// <summary>
+    /// When Ball collides with anything, do things (play particles, slow down Ball, spawn spores, etc.)
+    /// </summary>
+    protected virtual void OnCollisionDo(Collision2D collision)
+    {
+        // Did Ball hit Paddle?
+        if (collision.gameObject.TryGetComponent<Paddle>(out Paddle _paddle))
+        {
+            Vector2 _velInfluence = _paddle.GetPaddleInfluenceVelocityOnBallCollide(); // Get the Paddle velocity that can influence the Ball velocity
+            float _y_vel_influence = _velInfluence.y / 4.0f;
+            float _x_vel_influence = _velInfluence.x;
+
+            if (Mathf.Abs(_x_vel_influence) > 1f) // If Paddle imparts great x velocity (such as if in PaddleActionSlam)
+            {
+                OnCollisionSpeedMax(); // Speed up ball
+            }
+            else
+            {
+                // On collision with Paddle, slightly give Ball more horizontal speed than physically possible, to reduce scenario where Ball ends
+                // up moving almost vertically across the level
+                _x_vel_influence = _paddle.GetDirToCenter() * extraHorizontalSpeedOnCollision;
+            }
+
+            c_rb.velocity = new Vector2(c_rb.velocity.x + _x_vel_influence, c_rb.velocity.y + _y_vel_influence); // Set Ball velocity
+
+            if (_paddle.IsBallScoreMultiplierResetter())
+            {
+                OnPaddleHitResetScoreMultiplier(); // Reset Ball score multiplier on hit with "normal" Paddle
+            }
+        }
+
+        OnCollisionSlow(); // Potentially slow down Ball
+        OnCollisionSpawnSpores(); // Potentially spawn BallSpores
+
+        OnCollisionSpawnParticles(collision.GetContact(0).point); // Spawn hit particles
+    }
+
+    /// <summary>
     /// When Ball collides with Paddle, speed up Ball
     /// </summary>
-    private void OnCollisionSpeedMax()
+    protected void OnCollisionSpeedMax()
     {
         li_speedStage.resetToMax();
         li_collisionsBeforeSlowStage.resetToMax(); // Reset collisions before slowing down a speed stage
@@ -101,7 +168,7 @@ public class Ball : MonoBehaviour
     /// <summary>
     /// When Ball collides with anything, slow down Ball if Ball is faster than base speed
     /// </summary>
-    private void OnCollisionDoSlow()
+    protected void OnCollisionSlow()
     {
         li_collisionsBeforeSlowStage.Decrement();
 
@@ -113,9 +180,32 @@ public class Ball : MonoBehaviour
     }
 
     /// <summary>
+    /// When Ball collides with anything, slow down Ball if Ball is faster than base speed
+    /// </summary>
+    protected void OnCollisionSpawnSpores()
+    {
+        if (!currFlags.f_spawnSpores) return; // Cannot spawn BallSpores
+        if (currState == BallState.MAGNETIZED) return; // Cannot spawn BallSpores when magnetized
+
+        // Spawn a number of BallSpores
+        float _randAngleOffset = UnityEngine.Random.Range(0f, 360f); // Start with a random angle offset
+        for (int _sporeNum = 0; _sporeNum < numSporesOnSpawn; _sporeNum++)
+        {
+            float _angleDegree = (360 / numSporesOnSpawn) * _sporeNum + _randAngleOffset;
+            float _angleRadian = _angleDegree * Mathf.Deg2Rad;
+            Vector3 _pointOnCirc = new Vector3(Mathf.Cos(_angleRadian), Mathf.Sin(_angleRadian), 0) * c_circleCol.radius; // Spawn spores along circumference of Ball (otherwise BallSpores would collide with eachother)
+            Quaternion _rot = Quaternion.Euler(0, 0, _angleDegree);
+
+            BallSpore _bs = Instantiate(pf_BallSpore, transform.position + _pointOnCirc, Quaternion.identity, ManagerBall.Instance.transform); // Instantiate BallSpores under ManagerBall (for easy cleanup)
+            Physics2D.IgnoreCollision(_bs.GetCircleCollider(), c_circleCol); // Make spawned spores ignore collision with spawner Ball (otherwise they get stuck)
+            _bs.LaunchBallInDir(_rot * Vector2.right);
+        }
+    }
+
+    /// <summary>
     /// When Ball collides with anything, play particles
     /// </summary>
-    private void OnCollisionSpawnParticles(Vector2 _spawnPos)
+    protected void OnCollisionSpawnParticles(Vector2 _spawnPos)
     {
         switch (currState)
         {
@@ -148,8 +238,10 @@ public class Ball : MonoBehaviour
     /// <summary>
     /// When Ball is destroyed, play particles
     /// </summary>
-    private void OnDeathSpawnParticles(Vector2 _spawnPos)
+    protected void OnDeathSpawnParticles(Vector2 _spawnPos)
     {
+        if (!pf_onDeathParticles) return; // If no death particles, (like if Ball is BallSpore), then return
+
         // Instantiate death particles
         ParticleSystem _ps = Instantiate(pf_onDeathParticles, _spawnPos, Quaternion.identity);
     }
@@ -157,7 +249,7 @@ public class Ball : MonoBehaviour
     /// <summary>
     /// Reduce Ball speed to least
     /// </summary>
-    private void SpeedFloor()
+    protected void SpeedFloor()
     {
         li_speedStage.resetToMin();
         li_collisionsBeforeSlowStage.resetToMax(); // Reset collisions before slowing down a speed stage
@@ -166,7 +258,7 @@ public class Ball : MonoBehaviour
     /// <summary>
     /// Update Ball & trail color
     /// </summary>
-    private void UpdateBallColor()
+    protected virtual void UpdateBallColor()
     {
         switch (currState)
         {
@@ -190,8 +282,6 @@ public class Ball : MonoBehaviour
             Gradient _grad = new Gradient();
             _grad.SetKeys(new GradientColorKey[] { new GradientColorKey(c_spriteRenderer.color, 0.0f), new GradientColorKey(speedColors[li_speedStage.curr], 0.5f) }, new GradientAlphaKey[] { new GradientAlphaKey(0.7f, 0.0f), new GradientAlphaKey(0.2f, 1.0f) });
             c_trailRenderer.colorGradient = _grad;
-
-            c_trailRenderer.startWidth = transform.localScale.x * 0.3f;
         }
     }
     #endregion
@@ -220,6 +310,14 @@ public class Ball : MonoBehaviour
     public Color GetBallScoreMultiplierColor()
     {
         return scoreMultiplierColors[li_noPaddleHitScoreMultiplierStage.curr];
+    }
+
+    /// <summary>
+    /// Sets this Ball's flags to the same as the given Ball's flags
+    /// </summary>
+    public void SynchronizeBallFlags(Ball _ball)
+    {
+        currFlags = _ball.GetBallFlags();
     }
 
     /// <summary>
@@ -290,6 +388,14 @@ public class Ball : MonoBehaviour
     }
 
     /// <summary>
+    /// Sets whether or not this Ball will spawn BallSpores on collision
+    /// </summary>
+    public void SetBallSporeSpawner(bool _doSpawnSpores)
+    {
+        currFlags.f_spawnSpores = _doSpawnSpores;
+    }
+
+    /// <summary>
     /// Destroy Ball
     /// </summary>
     public void DestroyBall()
@@ -303,42 +409,15 @@ public class Ball : MonoBehaviour
      * On Event Methods
      *********************************************************************************************************************************************************************************/
     #region On Event Methods
-    private void OnCollisionEnter2D(Collision2D collision)
+    protected void OnCollisionEnter2D(Collision2D collision)
     {
-        OnCollisionDoSlow(); // Potentially slow down Ball on collision with anything
-
-        // Did Ball hit Paddle?
-        if (collision.gameObject.TryGetComponent<Paddle>(out Paddle _paddle))
-        {
-            Vector2 _velInfluence = _paddle.GetPaddleInfluenceVelocityOnBallCollide(); // Get the Paddle velocity that can influence the Ball velocity
-            float _y_vel_influence = _velInfluence.y / 4.0f;
-            float _x_vel_influence = _velInfluence.x;
-
-            if (Mathf.Abs(_x_vel_influence) > 1f) // If Paddle imparts great x velocity (such as if in PaddleActionSlam)
-            {
-                OnCollisionSpeedMax(); // Speed up ball
-            }
-            else
-            {
-                // On collision with Paddle, slightly give Ball more horizontal speed than physically possible, to reduce scenario where Ball ends
-                // up moving almost vertically across the level
-                _x_vel_influence = _paddle.GetDirToCenter() * extraHorizontalSpeedOnCollision;
-            }
-
-            c_rb.velocity = new Vector2(c_rb.velocity.x + _x_vel_influence, c_rb.velocity.y + _y_vel_influence); // Set Ball velocity
-
-            if (_paddle.IsBallScoreMultiplierResetter())
-            {
-                OnPaddleHitResetScoreMultiplier(); // Reset Ball score multiplier on hit with "normal" Paddle
-            }
-        }
-
         // Did Ball hit anything?
         float _randX = UnityEngine.Random.Range(-0.1f, 0.1f);
         float _randY = UnityEngine.Random.Range(-0.1f, 0.1f);
         c_rb.velocity += new Vector2(_randX, _randY); // Slightly randomize Ball bounce
 
-        OnCollisionSpawnParticles(collision.GetContact(0).point); // On hit, spawn collision particles
+        // Do additional work on collision
+        OnCollisionDo(collision);
     }
     #endregion
 }

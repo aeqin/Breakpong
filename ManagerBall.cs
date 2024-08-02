@@ -82,12 +82,21 @@ public class ManagerBall : MonoBehaviour
         {
             Vector2 _dir = _ball.GetBallCurrDir(); // Current direction of Ball
             Ball _ballClone = CreateBallAt(_ball.transform.position);
+            _ballClone.SynchronizeBallFlags(_ball); // Clone should have same flags as base Ball
 
             // Send both Ball, and clone of Ball in branching directions slightly off from original direction
             Quaternion _rotByDegUp = Quaternion.Euler(0, 0, splitDegree);
             Quaternion _rotByDegDown = Quaternion.Euler(0, 0, -1 * splitDegree);
             _ball.LaunchBallInDir(_rotByDegUp * _dir);
             _ballClone.LaunchBallInDir(_rotByDegDown * _dir);
+        }
+    }
+
+    private void SporeBalls()
+    { 
+        foreach (Ball _ball in list_Balls)
+        {
+            _ball.SetBallSporeSpawner(true); // Allow active Ball to spawn BallSpores on collision
         }
     }
     #endregion
@@ -135,6 +144,10 @@ public class ManagerBall : MonoBehaviour
                 SplitBalls();
                 break;
 
+            case ManagerPowerup.PowerupType.BallSpore:
+                SporeBalls();
+                break;
+
             default:
                 Debug.LogError("Add case to ManagerBall:OnPowerupPickup() for Powerup." + _powerUp.ToString());
                 break;
@@ -168,11 +181,18 @@ public class ManagerBall : MonoBehaviour
     /// </summary>
     public void DestroyBalls()
     {
+        // Destroy normal Balls
         foreach (Ball _ball in list_Balls)
         {
             _ball.DestroyBall();
         }
         list_Balls.Clear();
+
+        // Destroy secondary Balls (like BallSpore)
+        foreach (Transform _childTransform in transform) // Iterate through all children of ManagerBall
+        {
+            Destroy(_childTransform.gameObject);
+        }
     }
     #endregion
 

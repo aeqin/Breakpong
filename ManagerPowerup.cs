@@ -35,6 +35,7 @@ public class ManagerPowerup : MonoBehaviour
         PaddleShrinkPaddle,
 
         BallSplit,
+        BallSpore,
     }
 
     [SerializeField] private Powerup pf_powerup;
@@ -47,6 +48,7 @@ public class ManagerPowerup : MonoBehaviour
     [SerializeField] private Sprite spr_growPaddle;
     [SerializeField] private Sprite spr_shrinkPaddle;
     [SerializeField] private Sprite spr_ballSplit;
+    [SerializeField] private Sprite spr_ballSpore;
 
     // PowerupDropEngine
     private PowerupDropEngine currPowerupDropEngine;
@@ -202,6 +204,9 @@ public class ManagerPowerup : MonoBehaviour
             case PowerupType.BallSplit:
                 return spr_ballSplit;
 
+            case PowerupType.BallSpore:
+                return spr_ballSpore;
+
             default:
                 Debug.LogError("Add case to ManagerPowerup:GetSpriteFromPowerupType() for Powerup." + _powerUp.ToString());
                 break;
@@ -220,6 +225,7 @@ public class ManagerPowerup : MonoBehaviour
         switch (_powerUp)
         {
             case PowerupType.BallSplit:
+            case PowerupType.BallSpore:
                 ManagerBall.Instance.OnPowerupPickup(_powerUp);
                 break;
 
