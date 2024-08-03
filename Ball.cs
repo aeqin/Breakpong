@@ -11,9 +11,9 @@ public class Ball : MonoBehaviour
     protected TrailRenderer c_trailRenderer;
 
     // Movement variables
-    [SerializeField] private float baseMoveSpeed = 5f;
+    [SerializeField] private float baseMoveSpeed = 330f;
     private float currMoveSpeed;
-    private float extraHorizontalSpeedOnCollision = 2f;
+    private float extraHorizontalSpeedOnCollision = 200f;
 
     // Ball state variables
     public enum BallState { NORMAL, MAGNETIZED, }; // Mutually exclusive Ball states
@@ -106,6 +106,14 @@ public class Ball : MonoBehaviour
     protected CircleCollider2D GetCircleCollider()
     {
         return c_circleCol;
+    }
+
+    /// <summary>
+    /// Returns the base speed of this Ball
+    /// </summary>
+    protected float GetBallBaseSpeed()
+    {
+        return baseMoveSpeed;
     }
 
     /// <summary>
@@ -326,26 +334,15 @@ public class Ball : MonoBehaviour
     /// <returns>Ideal position of Ball after magnetizing to Paddle</returns>
     public Vector2 FreezeBallOnPaddle(Bounds _paddleBounds)
     {
-        Vector3 _squareAroundCollider = Utilities.Vec2FromFloat(c_circleCol.radius * 2f);
-        Bounds _ballBounds = new Bounds((Vector2)transform.position, _squareAroundCollider);
-        Vector3 _dirToPaddle = (c_rb.velocity * -1).normalized;// (_paddleBounds.center - _ballBounds.center).normalized;
-        Vector3 _start = _paddleBounds.center;
-
-        int adjustLimiter = 0; // Limit amount of incremental movements
-        _ballBounds.center += _dirToPaddle * Time.fixedDeltaTime;
-        while (!_ballBounds.Intersects(_paddleBounds) && adjustLimiter++ < 10)
-        {
-            _ballBounds.center += _dirToPaddle * Time.fixedDeltaTime; // Slowly increment position until Ball bounds would enter Paddle bounds
-        }
-        _ballBounds.center -= _dirToPaddle * Time.fixedDeltaTime; // Since while loop tripped when past bounds, decrement once
-
-        c_rb.MovePosition(_ballBounds.center); // Set position at edge of Paddle
+        // Edge of Paddle + radius of Ball = position of Ball without any overlapping colliders
+        Vector3 _paddleEdgePlusBall = _paddleBounds.center + new Vector3(_paddleBounds.extents.x + c_circleCol.radius, transform.position.y, 0);
+        transform.position = _paddleEdgePlusBall;
 
         // Freeze Ball
         currState = BallState.MAGNETIZED;
         SpeedFloor();
 
-        return _ballBounds.center;
+        return transform.position;
     }
 
     /// <summary>
@@ -396,6 +393,14 @@ public class Ball : MonoBehaviour
     }
 
     /// <summary>
+    /// When Laser hits Ball, slightly influence Ball velocity
+    /// </summary>
+    public virtual void OnLaserHitBall(Laser _laser)
+    {
+        c_rb.velocity = new Vector2(c_rb.velocity.x + _laser.GetCurrVelocity().x / 3f, c_rb.velocity.y);
+    }
+
+    /// <summary>
     /// Destroy Ball
     /// </summary>
     public void DestroyBall()
@@ -412,8 +417,8 @@ public class Ball : MonoBehaviour
     protected void OnCollisionEnter2D(Collision2D collision)
     {
         // Did Ball hit anything?
-        float _randX = UnityEngine.Random.Range(-0.1f, 0.1f);
-        float _randY = UnityEngine.Random.Range(-0.1f, 0.1f);
+        float _randX = UnityEngine.Random.Range(-5f, 5f);
+        float _randY = UnityEngine.Random.Range(-5f, 5f);
         c_rb.velocity += new Vector2(_randX, _randY); // Slightly randomize Ball bounce
 
         // Do additional work on collision

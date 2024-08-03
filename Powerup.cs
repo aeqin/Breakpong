@@ -33,7 +33,7 @@ public class Powerup : MonoBehaviour
 
     private void FixedUpdate()
     {
-        c_rb.velocity = powerUpMoveSpeed * new Vector2(powerUpXDir, 0) * Time.fixedDeltaTime;
+        c_rb.velocity = powerUpMoveSpeed * new Vector2(powerUpXDir, 0);
 
         // Destroy Powerup if offscreen
         if (Utilities.IsPosOffScreen(transform.position))

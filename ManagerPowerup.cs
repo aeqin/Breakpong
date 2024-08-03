@@ -33,6 +33,7 @@ public class ManagerPowerup : MonoBehaviour
         PaddleGhostPaddle,
         PaddleGrowPaddle,
         PaddleShrinkPaddle,
+        PaddleLaser,
 
         BallSplit,
         BallSpore,
@@ -47,6 +48,7 @@ public class ManagerPowerup : MonoBehaviour
     [SerializeField] private Sprite spr_ghostPaddle;
     [SerializeField] private Sprite spr_growPaddle;
     [SerializeField] private Sprite spr_shrinkPaddle;
+    [SerializeField] private Sprite spr_laser;
     [SerializeField] private Sprite spr_ballSplit;
     [SerializeField] private Sprite spr_ballSpore;
 
@@ -201,6 +203,9 @@ public class ManagerPowerup : MonoBehaviour
             case PowerupType.PaddleShrinkPaddle:
                 return spr_shrinkPaddle;
 
+            case PowerupType.PaddleLaser:
+                return spr_laser;
+
             case PowerupType.BallSplit:
                 return spr_ballSplit;
 
@@ -224,15 +229,25 @@ public class ManagerPowerup : MonoBehaviour
     {
         switch (_powerUp)
         {
+            // Powerup affects Balls
             case PowerupType.BallSplit:
             case PowerupType.BallSpore:
                 ManagerBall.Instance.OnPowerupPickup(_powerUp);
                 break;
 
+            // Powerup affects Paddles
             default:
                 _pickerUpper.AssignActionFromPowerup(_powerUp);
                 break;
         }
+    }
+
+    /// <summary>
+    /// When Laser hits Powerup, destroy Powerup
+    /// </summary>
+    public void OnLaserHitPowerup(Laser _laser, Powerup _powerup)
+    {
+        RemovePowerup(_powerup);
     }
 
     /// <summary>

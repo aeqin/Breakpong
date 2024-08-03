@@ -12,7 +12,7 @@ public class Paddle : MonoBehaviour
     protected InputControls inputControls;
 
     // Paddle Movement Variables
-    [SerializeField] protected float paddleMoveSpeed = 10f;
+    [SerializeField] protected float paddleMoveSpeed = 1000f;
     protected int dirToCenter; // Either -1 or 1 (direction from Paddle to center of screen)
     protected Vector2 initialPaddlePos;
     protected Vector2 initialPaddleSize;
@@ -25,176 +25,27 @@ public class Paddle : MonoBehaviour
     [SerializeField] protected PaddleActionIcon pf_ActionTwoIcon;
     [SerializeField] protected PaddleActionIcon pf_ActionOneBackground;
     [SerializeField] protected PaddleActionIcon pf_ActionTwoBackground;
-    [SerializeField] protected PaddleActionIconSpriteLib pf_PAIconSprLib;
-    protected RadialLineRenderer actionOneRadial; // Displays duration/presses left of PaddleAction 1
-    protected RadialLineRenderer actionTwoRadial; // Displays duration/presses left of PaddleAction 2
-    protected float radialSize = 0.4f; 
+    protected LineRendererRadial actionOneRadial; // Displays duration/presses left of PaddleAction 1
+    protected LineRendererRadial actionTwoRadial; // Displays duration/presses left of PaddleAction 2
+    protected float radialSize = 48f;
 
     // PaddleAction Variables
     #region PaddleAction Definitions
+    [SerializeField] protected PaddleSharedLib pf_PASharedLib;
     protected List<PaddleAction> list_PA = new List<PaddleAction>();
     protected PaddleAction currActionOne;
     protected PaddleAction currActionTwo;
     protected bool assignNextActionAsOne = true;
 
-    // PaddleAction Empty Variables
+    // PaddleAction Variables
     protected PaddleAction PA_Empty;
-    protected class PaddleActionEmpty : PaddleAction
-    {
-        public PaddleActionEmpty(Sprite _sUP, Sprite _sP, int _nP = -1, float _aD = -1f) : base(_sUP, _sP, _nP, _aD) { }
-    }
-
-    // PaddleAction Magnet Variables
     protected PaddleAction PA_Magnet;
     protected PaddleAction PA_Magnet_OneUse; // Same magnet action, but one use (used in the beginning of the game)
-    protected class PaddleActionMagnet : PaddleAction
-    {
-        public bool f_magnetized = true;
-        public bool f_useOnce = false;
-        public Dictionary<Ball, Vector2> dict_ball_offsetPos = new Dictionary<Ball, Vector2>();
-
-        public PaddleActionMagnet(Sprite _sUP, Sprite _sP, int _nP = -1, float _aD = -1f) : base(_sUP, _sP, _nP, _aD) { }
-
-        /// <summary>
-        /// Resets this PaddleAction attributes
-        /// </summary>
-        public override void Reset()
-        {
-            base.Reset();
-            f_magnetized = true;
-        }
-    }
-
-    // PaddleAction Slam Variables
     protected PaddleAction PA_Slam;
-    protected class PaddleActionSlam : PaddleAction
-    {
-        public enum SlamState { IDLE, SLAMMING, RESETTING, };
-        private  SlamState _currState;
-        public SlamState CurrState
-        {  
-            get
-            {
-                return _currState;
-            }
-            set
-            {
-                _currState = value;
-                if (f_delayedUnassignment && value == SlamState.IDLE) // Unassignment was delayed until Paddle stopped moving
-                {
-                    f_forceUnassignment = true; // Allow PaddleActionSlam to be unassigned
-                }
-            }
-        }
-        public Vector2 beforeSlamPos; // Initial Paddle position before Slam movement
-        public Vector2 slamAcceleration = new Vector2(17, 0);
-        public Vector2 slamDecceleration = new Vector2(21, 0);
-        public Vector2 slamInitialVel = new Vector2(16, 0);
-        public Vector2 slamReturnVel = new Vector2(-21, 0);
-        public float slamDistance = 2;
-        public float slamSpeedSwitchProgress = 0.7f;
-
-        public PaddleActionSlam(Sprite _sUP, Sprite _sP, int _nP = -1, float _aD = -1f) : base(_sUP, _sP, _nP, _aD) { }
-
-        /// <summary>
-        /// Check to see if PaddleActionSlam should delay unassignment (not yet idle, means Paddle is out of position)
-        /// </summary>
-        public override bool CheckDelayUnassign()
-        {
-            if (CurrState != SlamState.IDLE) // Paddle is currently still slamming/returning, so delay unassignment until IDLE state reached again
-            {
-                f_delayedUnassignment = true;
-                return true; // Do delay
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// Resets this PaddleAction attributes
-        /// </summary>
-        public override void Reset()
-        {
-            base.Reset();
-            CurrState = SlamState.IDLE;
-        }
-    }
-
-    // PaddleAction GhostPaddle Variables
-    [SerializeField] protected PaddleGhost pf_PaddleGhost;
     protected PaddleAction PA_GhostPaddle;
-    protected class PaddleActionGhostPaddle : PaddleAction
-    {
-        public PaddleGhost currGhostPaddle = null;
-        public bool f_controlCurrGhost = false;
-
-        public PaddleActionGhostPaddle(Sprite _sUP, Sprite _sP, int _nP = -1, float _aD = -1f) : base(_sUP, _sP, _nP, _aD) { }
-
-        /// <summary>
-        /// Check to see if PaddleActionGhostPaddle should delay unassignment (Player still controlling last spawn PaddleGhost)
-        /// </summary>
-        public override bool CheckDelayUnassign()
-        {
-            if (f_controlCurrGhost && currGhostPaddle != null) // Still currently controlling a PaddleGhost, do not unassign until Paddle regains control
-            {
-                f_delayedUnassignment = true;
-                return true; // Do delay
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// Resets this PaddleAction attributes
-        /// </summary>
-        public override void Reset()
-        {
-            base.Reset();
-            f_controlCurrGhost = false;
-        }
-    }
-
-    // PaddleAction GrowPaddle Variables
     protected PaddleAction PA_GrowPaddle;
-    protected class PaddleActionGrowPaddle : PaddleAction
-    {
-        public float growthMultiplierPerGrow = 2.0f; // How much to grow Paddle vertical length by
-        public int maxVerticalGrows = 4; // Maximum grows
-        public PaddleActionGrowPaddle(Sprite _sUP, Sprite _sP, int _nP = -1, float _aD = -1f) : base(_sUP, _sP, _nP, _aD) { }
-
-        /// <summary>
-        /// Restores this PaddleAction's presses / durations
-        /// </summary>
-        public override void Restore(bool _f_restoreDuringReset = false)
-        {
-            base.Restore(_f_restoreDuringReset);
-            if (!_f_restoreDuringReset) // If Restore() was called NOT during a Reset() of PaddleAction, then grow Paddle again
-            {
-                onAssignMethod(this); // GrowPaddle grows Paddle on call of "on assign" method
-            }
-        }
-    }
-
-    // PaddleAction ShrinkPaddle Variables
     protected PaddleAction PA_ShrinkPaddle;
-    protected class PaddleActionShrinkPaddle : PaddleAction
-    {
-        public float shrinkageMultiplierPerShrink = 0.5f; // How much to shrink Paddle vertical length by
-        public int minVerticalShrinks = 3; // Maximum shrinks
-        public PaddleActionShrinkPaddle(Sprite _sUP, Sprite _sP, int _nP = -1, float _aD = -1f) : base(_sUP, _sP, _nP, _aD) { }
-
-        /// <summary>
-        /// Restores this PaddleAction's presses / durations
-        /// </summary>
-        public override void Restore(bool _f_restoreDuringReset = false)
-        {
-            base.Restore(_f_restoreDuringReset);
-            if (!_f_restoreDuringReset) // If Restore() was called NOT during a Reset() of PaddleAction, then shrink Paddle again
-            {
-                onAssignMethod(this); // ShrinkPaddle shrinks Paddle on call of "on assign" method
-            }
-        }
-    }
+    protected PaddleAction PA_Laser;
 
     /// <summary>
     /// Class used to hold the methods for a PaddleAction depending on event if the action button is pressed, held, release, or collision, etc.
@@ -335,12 +186,12 @@ public class Paddle : MonoBehaviour
     protected virtual void CreatePaddleActions()
     {
         // Create each RadialLineRenderer that will be child of each PaddleActionIcon (so transform is the same), which will be used to display duration/presses left
-        actionOneRadial = Instantiate(pf_PAIconSprLib.pf_RadialLineRenderer, pf_ActionOneIcon.transform);
-        actionTwoRadial = Instantiate(pf_PAIconSprLib.pf_RadialLineRenderer, pf_ActionTwoIcon.transform);
+        actionOneRadial = Instantiate(pf_PASharedLib.pf_RadialLineRenderer, pf_ActionOneIcon.transform);
+        actionTwoRadial = Instantiate(pf_PASharedLib.pf_RadialLineRenderer, pf_ActionTwoIcon.transform);
 
         // Create each PaddleAction
-        PA_Empty = new PaddleActionEmpty(pf_PAIconSprLib.spr_Empty, null, -1, -1f);
-        PA_Magnet = new PaddleActionMagnet(pf_PAIconSprLib.spr_Magnet, pf_PAIconSprLib.spr_MagnetOFF, -1, 20f)
+        PA_Empty = new PaddleActionEmpty(pf_PASharedLib.spr_Empty, null, -1, -1f);
+        PA_Magnet = new PaddleActionMagnet(pf_PASharedLib.spr_Magnet, pf_PASharedLib.spr_MagnetOFF, -1, 20f)
         {
             onPressActionMethod = PaddleActionMagnetPress,
             onHeldActionMethod = PaddleActionMagnetHeld,
@@ -349,7 +200,7 @@ public class Paddle : MonoBehaviour
             onCollisionMethod = PaddleActionMagnetCollision,
             onUnassignMethod = PaddleActionMagnetUnassign,
         };
-        PA_Magnet_OneUse = new PaddleActionMagnet(pf_PAIconSprLib.spr_Magnet, null, -1, -1f) // Used in the beginning of the game (so Ball starts on Paddle)
+        PA_Magnet_OneUse = new PaddleActionMagnet(pf_PASharedLib.spr_Magnet, null, -1, -1f) // Used in the beginning of the game (so Ball starts on Paddle)
         {
             f_useOnce = true, // Allow Magnet to work only ONCE
             onPressActionMethod = PaddleActionMagnetPress,
@@ -358,12 +209,12 @@ public class Paddle : MonoBehaviour
             duringPhysicsMethod = PaddleActionMagnetDuring,
             onCollisionMethod = PaddleActionMagnetCollision,
         };
-        PA_Slam = new PaddleActionSlam(pf_PAIconSprLib.spr_Slam, null, 3, -1f)
+        PA_Slam = new PaddleActionSlam(pf_PASharedLib.spr_Slam, null, 3, -1f)
         {
             onPressActionMethod = PaddleActionSlamPress,
             duringPhysicsMethod = PaddleActionSlamDuring,
         };
-        PA_GhostPaddle = new PaddleActionGhostPaddle(pf_PAIconSprLib.spr_GhostPaddle, null, 6, -1f)
+        PA_GhostPaddle = new PaddleActionGhostPaddle(pf_PASharedLib.spr_GhostPaddle, null, 6, -1f)
         {
             onPressActionMethod = PaddleActionGhostPaddlePress,
             onHeldActionMethod = PaddleActionGhostPaddleHeld,
@@ -371,15 +222,22 @@ public class Paddle : MonoBehaviour
             duringPhysicsMethod = PaddleActionGhostPaddleDuring,
             onUnassignMethod = PaddleActionGhostPaddleUnassign,
         };
-        PA_GrowPaddle = new PaddleActionGrowPaddle(pf_PAIconSprLib.spr_GrowPaddle, null, -1, 20f)
+        PA_GrowPaddle = new PaddleActionGrowPaddle(pf_PASharedLib.spr_GrowPaddle, null, -1, 40f)
         {
             onAssignMethod = PaddleActionGrowPaddleAssign,
             onUnassignMethod = PaddleActionGrowPaddleUnassign,
         };
-        PA_ShrinkPaddle = new PaddleActionShrinkPaddle(pf_PAIconSprLib.spr_ShrinkPaddle, null, -1, 20f)
+        PA_ShrinkPaddle = new PaddleActionShrinkPaddle(pf_PASharedLib.spr_ShrinkPaddle, null, -1, 20f)
         {
             onAssignMethod = PaddleActionShrinkPaddleAssign,
             onUnassignMethod = PaddleActionShrinkPaddleUnassign,
+        };
+        PA_Laser = new PaddleActionLaser(pf_PASharedLib.spr_Laser, null, 8, -1f)
+        {
+            onAssignMethod = PaddleActionLaserAssign,
+            onPressActionMethod = PaddleActionLaserPress,
+            duringPhysicsMethod = PaddleActionLaserDuring,
+            onUnassignMethod = PaddleActionLaserUnassign,
         };
 
         list_PA.Add(PA_Empty);
@@ -389,6 +247,7 @@ public class Paddle : MonoBehaviour
         list_PA.Add(PA_GhostPaddle);
         list_PA.Add(PA_GrowPaddle);
         list_PA.Add(PA_ShrinkPaddle);
+        list_PA.Add(PA_Laser);
     }
 
     /// <summary>
@@ -885,6 +744,9 @@ public class Paddle : MonoBehaviour
             case ManagerPowerup.PowerupType.PaddleShrinkPaddle:
                 AssignNextAction(PA_ShrinkPaddle);
                 break;
+            case ManagerPowerup.PowerupType.PaddleLaser:
+                AssignNextAction(PA_Laser);
+                break;
 
             default:
                 Debug.LogError("Add case to Paddle:AssignActionFromPowerup() for Powerup." + _powerUp.ToString());
@@ -925,9 +787,41 @@ public class Paddle : MonoBehaviour
     #endregion
 
     /*********************************************************************************************************************************************************************************
-     * PaddleAction Methods
+     * PaddleAction Definitions & Methods
      *********************************************************************************************************************************************************************************/
-    #region PaddleAction Methods
+    #region PaddleAction Definitions & Methods
+    #region PaddleActionEmpty
+    /// <summary>
+    /// PaddleAction that represents an empty slot
+    /// </summary>
+    protected class PaddleActionEmpty : PaddleAction
+    {
+        public PaddleActionEmpty(Sprite _sUP, Sprite _sP, int _nP = -1, float _aD = -1f) : base(_sUP, _sP, _nP, _aD) { }
+    }
+    #endregion
+
+    #region PaddleActionMagnet
+    /// <summary>
+    /// PaddleAction that captures the Ball
+    /// </summary>
+    protected class PaddleActionMagnet : PaddleAction
+    {
+        public bool f_magnetized = true;
+        public bool f_useOnce = false;
+        public Dictionary<Ball, Vector2> dict_ball_offsetPos = new Dictionary<Ball, Vector2>();
+
+        public PaddleActionMagnet(Sprite _sUP, Sprite _sP, int _nP = -1, float _aD = -1f) : base(_sUP, _sP, _nP, _aD) { }
+
+        /// <summary>
+        /// Resets this PaddleAction attributes
+        /// </summary>
+        public override void Reset()
+        {
+            base.Reset();
+            f_magnetized = true;
+        }
+    }
+
     /// <summary>
     /// On press (of button) of PaddleAction Magnet. Shoot Ball forward.
     /// </summary>
@@ -1008,8 +902,8 @@ public class Paddle : MonoBehaviour
         // Did Paddle hit a Ball?
         if (_col.gameObject.TryGetComponent<Ball>(out Ball _ball))
         {
-            Vector2 _ballPos = _ball.FreezeBallOnPaddle(c_boxCol.bounds); // Tell Ball to freeze itself on Paddle
-            Vector2 _paddleToBallOffset = _ballPos - c_rb.position;
+            Vector3 _ballPos = _ball.FreezeBallOnPaddle(c_boxCol.bounds); // Tell Ball to freeze itself on Paddle
+            Vector2 _paddleToBallOffset = _ballPos - transform.position;
             if (!_PA_Magnet.dict_ball_offsetPos.ContainsKey(_ball))
                 _PA_Magnet.dict_ball_offsetPos[_ball] = _paddleToBallOffset;
         }
@@ -1025,6 +919,64 @@ public class Paddle : MonoBehaviour
         if (_PA_Magnet.dict_ball_offsetPos.Count > 0) // Balls still magnetized to Paddle
         {
             _PA_Magnet.onPressActionMethod(_PA_Magnet); // Release the Balls & clear dictionary
+        }
+    }
+    #endregion
+
+    #region PaddleActionSlam
+    /// <summary>
+    /// PaddleAction that "slams" the Paddle forward, and may launch the Ball
+    /// </summary>
+    protected class PaddleActionSlam : PaddleAction
+    {
+        public enum SlamState { IDLE, SLAMMING, RESETTING, };
+        private SlamState _currState;
+        public SlamState CurrState
+        {
+            get
+            {
+                return _currState;
+            }
+            set
+            {
+                _currState = value;
+                if (f_delayedUnassignment && value == SlamState.IDLE) // Unassignment was delayed until Paddle stopped moving
+                {
+                    f_forceUnassignment = true; // Allow PaddleActionSlam to be unassigned
+                }
+            }
+        }
+        public Vector2 beforeSlamPos; // Initial Paddle position before Slam movement
+        public Vector2 slamAcceleration = new Vector2(17, 0);
+        public Vector2 slamDecceleration = new Vector2(21, 0);
+        public Vector2 slamInitialVel = new Vector2(16, 0);
+        public Vector2 slamReturnVel = new Vector2(-21, 0);
+        public float slamDistance = 2;
+        public float slamSpeedSwitchProgress = 0.7f;
+
+        public PaddleActionSlam(Sprite _sUP, Sprite _sP, int _nP = -1, float _aD = -1f) : base(_sUP, _sP, _nP, _aD) { }
+
+        /// <summary>
+        /// Check to see if PaddleActionSlam should delay unassignment (not yet idle, means Paddle is out of position)
+        /// </summary>
+        public override bool CheckDelayUnassign()
+        {
+            if (CurrState != SlamState.IDLE) // Paddle is currently still slamming/returning, so delay unassignment until IDLE state reached again
+            {
+                f_delayedUnassignment = true;
+                return true; // Do delay
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Resets this PaddleAction attributes
+        /// </summary>
+        public override void Reset()
+        {
+            base.Reset();
+            CurrState = SlamState.IDLE;
         }
     }
 
@@ -1104,6 +1056,42 @@ public class Paddle : MonoBehaviour
             }
         }
     }
+    #endregion
+
+    #region PaddleActionGhostPaddle
+    /// <summary>
+    /// PaddleAction that spawns "ghost" Paddles that can be controlled
+    /// </summary>
+    protected class PaddleActionGhostPaddle : PaddleAction
+    {
+        public PaddleGhost currGhostPaddle = null;
+        public bool f_controlCurrGhost = false;
+
+        public PaddleActionGhostPaddle(Sprite _sUP, Sprite _sP, int _nP = -1, float _aD = -1f) : base(_sUP, _sP, _nP, _aD) { }
+
+        /// <summary>
+        /// Check to see if PaddleActionGhostPaddle should delay unassignment (Player still controlling last spawn PaddleGhost)
+        /// </summary>
+        public override bool CheckDelayUnassign()
+        {
+            if (f_controlCurrGhost && currGhostPaddle != null) // Still currently controlling a PaddleGhost, do not unassign until Paddle regains control
+            {
+                f_delayedUnassignment = true;
+                return true; // Do delay
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Resets this PaddleAction attributes
+        /// </summary>
+        public override void Reset()
+        {
+            base.Reset();
+            f_controlCurrGhost = false;
+        }
+    }
 
     /// <summary>
     /// On press (of button) of PaddleAction GhostPaddle. Spawns a PaddleGhost, which moves according to Player input INSTEAD of this Paddle
@@ -1113,7 +1101,7 @@ public class Paddle : MonoBehaviour
     {
         PaddleActionGhostPaddle _PA_GhostPaddle = (PaddleActionGhostPaddle)_PA; // Cast base PaddleAction into PaddleActionGhostPaddle
 
-        _PA_GhostPaddle.currGhostPaddle = Instantiate(pf_PaddleGhost, transform.position, transform.rotation); // Spawn PaddleGhost on top of this Paddle
+        _PA_GhostPaddle.currGhostPaddle = Instantiate(pf_PASharedLib.pf_PaddleGhost, transform.position, transform.rotation); // Spawn PaddleGhost on top of this Paddle
         _PA_GhostPaddle.currGhostPaddle.Initialize(this);
 
         c_rb.velocity = Vector2.zero; // Stop any current velocity for one frame
@@ -1187,7 +1175,30 @@ public class Paddle : MonoBehaviour
 
         RegainInputControl(); // Have this Paddle respond to movement inputs again
     }
+    #endregion
 
+    #region PaddleActionGrowPaddle
+    /// <summary>
+    /// PaddleAction that grows this Paddle vertically
+    /// </summary>
+    protected class PaddleActionGrowPaddle : PaddleAction
+    {
+        public float growthMultiplierPerGrow = 2.0f; // How much to grow Paddle vertical length by
+        public int maxVerticalGrows = 4; // Maximum grows
+        public PaddleActionGrowPaddle(Sprite _sUP, Sprite _sP, int _nP = -1, float _aD = -1f) : base(_sUP, _sP, _nP, _aD) { }
+
+        /// <summary>
+        /// Restores this PaddleAction's presses / durations
+        /// </summary>
+        public override void Restore(bool _f_restoreDuringReset = false)
+        {
+            base.Restore(_f_restoreDuringReset);
+            if (!_f_restoreDuringReset) // If Restore() was called NOT during a Reset() of PaddleAction, then grow Paddle again
+            {
+                onAssignMethod(this); // GrowPaddle grows Paddle on call of "on assign" method
+            }
+        }
+    }
     /// <summary>
     /// On assign PaddleAction GrowPaddle. Increase vertical length of Paddle
     /// </summary>
@@ -1210,6 +1221,30 @@ public class Paddle : MonoBehaviour
     protected void PaddleActionGrowPaddleUnassign(PaddleAction _PA)
     {
         SetPaddleSize(initialPaddleSize);
+    }
+    #endregion
+
+    #region PaddleActionShrinkPaddle
+    /// <summary>
+    /// PaddleAction that shrinks this Paddle vertically
+    /// </summary>
+    protected class PaddleActionShrinkPaddle : PaddleAction
+    {
+        public float shrinkageMultiplierPerShrink = 0.5f; // How much to shrink Paddle vertical length by
+        public int minVerticalShrinks = 3; // Maximum shrinks
+        public PaddleActionShrinkPaddle(Sprite _sUP, Sprite _sP, int _nP = -1, float _aD = -1f) : base(_sUP, _sP, _nP, _aD) { }
+
+        /// <summary>
+        /// Restores this PaddleAction's presses / durations
+        /// </summary>
+        public override void Restore(bool _f_restoreDuringReset = false)
+        {
+            base.Restore(_f_restoreDuringReset);
+            if (!_f_restoreDuringReset) // If Restore() was called NOT during a Reset() of PaddleAction, then shrink Paddle again
+            {
+                onAssignMethod(this); // ShrinkPaddle shrinks Paddle on call of "on assign" method
+            }
+        }
     }
 
     /// <summary>
@@ -1235,6 +1270,92 @@ public class Paddle : MonoBehaviour
     {
         SetPaddleSize(initialPaddleSize);
     }
+    #endregion
+
+    #region PaddleActionLaser
+    /// <summary>
+    /// PaddleAction that shoots Lasers that may break Bricks
+    /// </summary>
+    protected class PaddleActionLaser : PaddleAction
+    {
+        public LineRendererDotted topAim;
+        public LineRendererDotted botAim;
+
+        public PaddleActionLaser(Sprite _sUP, Sprite _sP, int _nP = -1, float _aD = -1f) : base(_sUP, _sP, _nP, _aD) { }
+    }
+
+    /// <summary>
+    /// On assign PaddleAction Laser. Spawn two LineRendererDotted, that show path of potential fired Laser
+    /// </summary>
+    protected void PaddleActionLaserAssign(PaddleAction _PA)
+    {
+        PaddleActionLaser _PA_Laser = (PaddleActionLaser)_PA; // Cast base PaddleAction into PaddleActionLaser
+
+        Vector3 _offset = new Vector3(0, c_spriteRenderer.size.y / 2f, 0); // Half size of SpriteRenderer
+        Vector3 _topOfPaddle = transform.position + _offset;
+        Vector3 _botOfPaddle = transform.position - _offset;
+
+        // Create and initialize a dotted line on the top and bottom face of the Paddle
+        _PA_Laser.topAim = Instantiate(pf_PASharedLib.pf_LineRendererDotted, _topOfPaddle, Quaternion.identity);
+        _PA_Laser.botAim = Instantiate(pf_PASharedLib.pf_LineRendererDotted, _botOfPaddle, Quaternion.identity);
+        _PA_Laser.topAim.Initialize(_topOfPaddle, _topOfPaddle, Color.white, _fade: true);
+        _PA_Laser.botAim.Initialize(_botOfPaddle, _botOfPaddle, Color.white, _fade: true);
+    }
+
+    /// <summary>
+    /// On press (of button) of PaddleAction Laser. Spawns a Laser and shoots it out
+    /// </summary>
+    /// <returns>Returns true</returns>
+    protected bool PaddleActionLaserPress(PaddleAction _PA)
+    {
+        PaddleActionLaser _PA_Laser = (PaddleActionLaser)_PA; // Cast base PaddleAction into PaddleActionLaser
+
+        Vector3 _offset = new Vector3(0, c_spriteRenderer.size.y / 2f, 0); // Half size of SpriteRenderer
+
+        Laser _laserTop = Instantiate(pf_PASharedLib.pf_Laser, transform.position + _offset, transform.rotation); // Spawn Laser from top of Paddle
+        Laser _laserBot = Instantiate(pf_PASharedLib.pf_Laser, transform.position - _offset, transform.rotation); // Spawn Laser from bottom of Paddle
+
+        _laserTop.Initialize(c_boxCol, dirToCenter);
+        _laserBot.Initialize(c_boxCol, dirToCenter);
+
+        return true;
+    }
+
+    /// <summary>
+    /// During (each physics frame) of PaddleAction Laser. Update the dotted lines that show path of potential fired Laser
+    /// </summary>
+    protected void PaddleActionLaserDuring(PaddleAction _PA)
+    {
+        PaddleActionLaser _PA_Laser = (PaddleActionLaser)_PA; // Cast base PaddleAction into PaddleActionLaser
+
+        Vector3 _offset = new Vector3(0, c_spriteRenderer.size.y / 2f + c_rb.velocity.y * Time.fixedDeltaTime, 0); // Corner of SpriteRenderer, closest to center of screen
+        Vector3 _topOfPaddle = transform.position + _offset;
+        Vector3 _botOfPaddle = transform.position + new Vector3(0, _offset.y - c_spriteRenderer.size.y, 0);
+
+        // Update top aim trajectory
+        RaycastHit2D _topHit = Physics2D.Raycast(_topOfPaddle, Vector2.right * dirToCenter, Screen.width, ~LayerMask.GetMask("Paddle"));
+        if (_topHit) _PA_Laser.topAim.UpdateEndPos(_topHit.point);
+        else _PA_Laser.topAim.UpdateEndPos(_topOfPaddle + Vector3.right * dirToCenter * Screen.width);
+        _PA_Laser.topAim.UpdateStartPos(_topOfPaddle);
+
+        // Update bot aim trajectory
+        RaycastHit2D _botHit = Physics2D.Raycast(_botOfPaddle, Vector2.right * dirToCenter, Screen.width, ~LayerMask.GetMask("Paddle"));
+        if (_botHit) _PA_Laser.botAim.UpdateEndPos(_botHit.point);
+        else _PA_Laser.botAim.UpdateEndPos(_botOfPaddle + Vector3.right * dirToCenter * Screen.width);
+        _PA_Laser.botAim.UpdateStartPos(_botOfPaddle);
+    }
+
+    /// <summary>
+    /// On unassign PaddleAction Laser. Destroy the two LineRendererDotted
+    /// </summary>
+    protected void PaddleActionLaserUnassign(PaddleAction _PA)
+    {
+        PaddleActionLaser _PA_Laser = (PaddleActionLaser)_PA; // Cast base PaddleAction into PaddleActionLaser
+
+        Destroy(_PA_Laser.topAim);
+        Destroy(_PA_Laser.botAim);
+    }
+    #endregion
     #endregion
 
     /*********************************************************************************************************************************************************************************

@@ -96,17 +96,26 @@ public class LivesGrid : MonoBehaviour
     }
 
     /// <summary>
-    /// Calculate the distance that the next LifeBall in queue needs to fall to reach level bounds
+    /// Calculate the distance that the next LifeBall in queue needs to fall to reach level bounds. Since level bounds may not necessarily be a rectangle, use a raycast
     /// </summary>
     private float CalcDropDistance()
     {
-        Vector3 _levelBoundsUpCenterPoint = Camera.main.WorldToScreenPoint(ManagerLevel.Instance.GetLevelBounds().center + new Vector3(0, ManagerLevel.Instance.GetLevelBounds().size.y / 2, 0));
-        float _levelBoundsUpCenterY = _levelBoundsUpCenterPoint.y;
-        float _nextLifeBallY = list_lifeBalls.Last().transform.position.y;
-        float _cellSizeY = c_gridLayoutGroup.cellSize.y;
-        float _dropDistance = (_levelBoundsUpCenterY - _nextLifeBallY) - _cellSizeY / 2.0f;
+        Vector3 _topOfLevelScreenPos;
+        Vector3 _topOfLevelWorldPos;
+        Vector3 _nextLifeBallScreenPos = list_lifeBalls.Last().transform.position;
+        Vector3 _nextLifeBallWorldPos = Camera.main.ScreenToWorldPoint(_nextLifeBallScreenPos);
 
-        return _dropDistance;
+        RaycastHit2D _hit = Physics2D.Raycast(_nextLifeBallWorldPos, Vector2.down, 100f);
+        if (_hit)
+        {
+            _topOfLevelWorldPos = _hit.point;
+            _topOfLevelScreenPos = Camera.main.WorldToScreenPoint(_topOfLevelWorldPos);
+
+            return (_topOfLevelScreenPos - _nextLifeBallScreenPos).y;
+        }
+
+        Debug.LogError("LivesGrid:CalcDropDistance(), cannot find top of level.");
+        return -1;
     }
 
     /// <summary>

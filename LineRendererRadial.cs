@@ -4,7 +4,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.TextCore.Text;
 
-public class RadialLineRenderer : MonoBehaviour
+public class LineRendererRadial : MonoBehaviour
 {
     [SerializeField] private LineRenderer pf_line; // GameObject of a LineRenderer (with use WorldSpace == false) to instantiate for each arc of a RadialLineRenderer
 
@@ -67,7 +67,7 @@ public class RadialLineRenderer : MonoBehaviour
     /// <summary>
     /// Draw a circular progress bar by creating LineRenderer's for each segment arc.
     /// </summary>
-    public void DrawRadialBar(float _radius, int _segments = 1, float _gapSizeAngle = Mathf.PI/32, float _width = 0.1f, float _angleStart = 0f, int _smoothness = 99)
+    public void DrawRadialBar(float _radius, int _segments = 1, float _gapSizeAngle = Mathf.PI/32, float _width = 8f, float _angleStart = 0f, int _smoothness = 99)
     {
         // Clear, if any, already drawn LineRenderers
         ClearRadialBar();

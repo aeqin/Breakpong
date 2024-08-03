@@ -5,7 +5,7 @@ using UnityEngine;
 public class PaddleGhost : Paddle
 {
     private Paddle ghostOfPaddle; // What main Paddle is this PaddleGhost a copy of
-    private float ghostXMoveSpeed = 2.0f;
+    private float ghostXMoveSpeed = 200f;
 
 
     protected override void FixedUpdate()

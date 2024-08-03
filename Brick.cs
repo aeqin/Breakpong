@@ -171,7 +171,7 @@ public class Brick : MonoBehaviour
      *********************************************************************************************************************************************************************************/
     #region On Event Methods
     /// <summary>
-    /// When Brick collides with Ball, destroy Brick
+    /// When Brick collides with Ball, potentially destroy Brick
     /// </summary>
     protected void OnCollisionEnter2D(Collision2D collision)
     {

@@ -186,6 +186,7 @@ public class ManagerLevel : MonoBehaviour
                     {ManagerPowerup.PowerupType.PaddleGhostPaddle, 20},
                     {ManagerPowerup.PowerupType.PaddleGrowPaddle, 25},
                     {ManagerPowerup.PowerupType.PaddleShrinkPaddle, 8},
+                    {ManagerPowerup.PowerupType.PaddleLaser, 10},
                     {ManagerPowerup.PowerupType.BallSplit, 50},
                     {ManagerPowerup.PowerupType.BallSpore, 10},
                 };
@@ -278,6 +279,15 @@ public class ManagerLevel : MonoBehaviour
         UpdateScore(_brickScore);
 
         FlashScore(_ball.GetBallScoreMultiplierColor()); // Flash score by Ball score multiplier color
+    }
+
+    /// <summary>
+    /// When Brick is hit by a Ball, add to score.
+    /// </summary>
+    public void UpdateScoreOnBrickHitByLaser(Brick _brick, Laser _laser)
+    {
+        int _brickScore = _brick.GetScore();
+        UpdateScore(_brickScore);
     }
 
     /// <summary>

@@ -92,9 +92,8 @@ public class ManagerBrick : MonoBehaviour
     }
 
     /// <summary>
-    /// Spawn a Brick at given position
+    /// When Ball hits Brick, potentially destroy Brick
     /// </summary>
-    /// <param name="_spawnPos">World position of Brick</param>
     public void OnBallHitBrick(Ball _ball, Brick _brick)
     {
         Brick.BrickDamage _result = _brick.DamageBrick();
@@ -111,6 +110,30 @@ public class ManagerBrick : MonoBehaviour
                 RemoveBrick(_brick);
                 break;
         }
+    }
+
+    /// <summary>
+    /// When Laser hits Brick, potentially destroy Brick
+    /// </summary>
+    public void OnLaserHitBrick(Laser _laser, Brick _brick)
+    {
+        Brick.BrickDamage _result = _brick.DamageBrick();
+
+        switch (_result)
+        {
+            case Brick.BrickDamage.SUCCESS:
+                ManagerLevel.Instance.UpdateScoreOnBrickHitByLaser(_brick, _laser);
+                break;
+            case Brick.BrickDamage.INVINCIBLE:
+                _laser.ReflectLaser();
+                return; // Return after reflecting Laser, so as to not DestroyLaser()
+            case Brick.BrickDamage.DEATH:
+                ManagerLevel.Instance.UpdateScoreOnBrickHitByLaser(_brick, _laser);
+                RemoveBrick(_brick);
+                break;
+        }
+
+        _laser.DestroyLaser();
     }
 
     /// <summary>

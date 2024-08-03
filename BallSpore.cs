@@ -27,4 +27,17 @@ public class BallSpore : Ball
 
     protected override void UpdateBallColor() { } // Do nothing
     #endregion
+
+    /*********************************************************************************************************************************************************************************
+     * Protected Methods
+     *********************************************************************************************************************************************************************************/
+    #region Protected Methods
+    /// <summary>
+    /// When Laser hits BallSpore, destroy BallSpore
+    /// </summary>
+    public override void OnLaserHitBall(Laser _laser)
+    {
+        Destroy(gameObject);
+    }
+    #endregion
 }
