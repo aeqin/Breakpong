@@ -26,12 +26,9 @@ public class ManagerLevel : MonoBehaviour
     [SerializeField] private EdgeCollider2D c_boundary;
 
     // Score variables
-    public TextMeshProUGUI scoreText;
+    [SerializeField] private FlavorTextUI pf_scoreText;
     private int score = 0;
     private Color baseScoreColor = Color.white;
-
-    private IEnumerator flashScoreCoroutine;
-    private bool f_isFlashingScore = false;
 
     // Lives variables
     [SerializeField] private LivesGrid livesGrid;
@@ -90,7 +87,7 @@ public class ManagerLevel : MonoBehaviour
         livesGrid.InitializeLives(li_lives.curr);
 
         // Zero score
-        scoreText.color = baseScoreColor;
+        pf_scoreText.ChangeColor(baseScoreColor);
         score = 0;
         UpdateScore(0);
 
@@ -115,60 +112,7 @@ public class ManagerLevel : MonoBehaviour
     private void UpdateScore(int _scoreToAdd)
     {
         score += _scoreToAdd;
-        scoreText.text = score.ToString("00000000");
-    }
-
-    /// <summary>
-    /// Flashes Score text
-    /// </summary>
-    private void FlashScore(Color _flashColor)
-    {
-        if (f_isFlashingScore)
-        {
-            StopCoroutine(flashScoreCoroutine);
-
-            flashScoreCoroutine = CR_FlashScore(baseScoreColor, _flashColor, 0.1f);
-            StartCoroutine(flashScoreCoroutine);
-        }
-        else
-        {
-            flashScoreCoroutine = CR_FlashScore(baseScoreColor, _flashColor, 0.1f);
-            StartCoroutine(flashScoreCoroutine);
-        }
-    }
-
-    /// <summary>
-    /// Coroutine that flashes scoreText to given color, then back
-    /// </summary>
-    private  IEnumerator CR_FlashScore(Color _baseColor, Color _flashColor, float _timeToPeak)
-    {
-        f_isFlashingScore = true; // Start flash flag
-
-        // Each frame, move towards  _flashColor
-        float _elapsedStep = 0f;
-        Color _currColor = scoreText.color;
-        while (_elapsedStep < 1)
-        {
-            scoreText.color = Color.Lerp(_currColor, _flashColor, _elapsedStep);
-            _elapsedStep = _elapsedStep + Time.deltaTime / _timeToPeak;
-            yield return null;
-        }
-
-        scoreText.color = _flashColor;
-        _currColor = scoreText.color;
-
-        // Each frame, return back to _baseColor
-        _elapsedStep = 0f;
-        while (_elapsedStep < 1)
-        {
-            scoreText.color = Color.Lerp(_currColor, _baseColor, _elapsedStep);
-            _elapsedStep = _elapsedStep + Time.deltaTime / _timeToPeak;
-            yield return null;
-        }
-
-        scoreText.color = _baseColor;
-
-        f_isFlashingScore = false; // Finish flash flag
+        pf_scoreText.ChangeText(score.ToString("00000000"));
     }
 
     private Dictionary<ManagerPowerup.PowerupType, int> GetPowerupWeightDictForLevel(int _level)
@@ -278,7 +222,7 @@ public class ManagerLevel : MonoBehaviour
         int _brickScore = (int)(_brick.GetScore() * _ball.GetBallScoreMultiplier());
         UpdateScore(_brickScore);
 
-        FlashScore(_ball.GetBallScoreMultiplierColor()); // Flash score by Ball score multiplier color
+        pf_scoreText.GrowAndFlashText(Vector3.zero, _ball.GetBallScoreMultiplierColor(), _growAndFlashDuration: 0.3f, _overshootRatio: 0.18f, _growFromPoint: false);
     }
 
     /// <summary>

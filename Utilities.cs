@@ -41,6 +41,30 @@ public static class Utilities
     }
 
     /// <summary>
+    /// Return a Vector3 (val, 0, 0)
+    /// </summary>
+    public static Vector3 Vec3OnlyX(float _x)
+    {
+        return new Vector3(_x, 0, 0);
+    }
+
+    /// <summary>
+    /// Return a Vector3 (0, val, 0)
+    /// </summary>
+    public static Vector3 Vec3OnlyY(float _y)
+    {
+        return new Vector3(0, _y, 0);
+    }
+
+    /// <summary>
+    /// Return a Vector3 (0, 0, val)
+    /// </summary>
+    public static Vector3 Vec3OnlyZ(float _z)
+    {
+        return new Vector3(0, 0, _z);
+    }
+
+    /// <summary>
     /// Given two bounds, return whether the first bounds in COMPLETELY within the second bounds
     /// </summary>
     public static bool IsBoundsInsideBounds(Bounds _candy, Bounds _container)
@@ -84,5 +108,24 @@ public static class Utilities
     public static bool FlipACoin()
     {
         return (new System.Random().Next(2) == 0);
+    }
+
+    /// <summary>
+    /// Return the highest value of Keyframes in given AnimationCurve
+    /// </summary>
+    public static (int, float) GetCurvePeakKeyAndValue(AnimationCurve _curve)
+    {
+        int _peakKey = 0;
+        float _peakValue = _curve.keys[0].value;
+        for(int _frame = 0; _frame < _curve.length; _frame++)
+        {
+            float _val = _curve.keys[_frame].value;
+            if (_val > _peakValue)
+            {
+                _peakValue = _val;
+                _peakKey = _frame;
+            }
+        }
+        return (_peakKey, _peakValue);
     }
 }

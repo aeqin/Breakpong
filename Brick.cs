@@ -22,7 +22,7 @@ public class Brick : MonoBehaviour
         DEATH, // Brick died from damage
     }
     [SerializeField] private int maxHP = 1;
-    [SerializeField] private TextMeshPro c_HPText;
+    [SerializeField] private TextMeshPro pf_HPText;
     private LimitInt li_brickHP;
     private bool f_isInvincible = false;
 
@@ -88,7 +88,7 @@ public class Brick : MonoBehaviour
             c_spriteRenderer.color = Color.red;
         }
 
-        c_HPText.text = GetHP().ToString(); // Display remaining HP
+        pf_HPText.text = GetHP().ToString(); // Display remaining HP
     }
 
     /// <summary>

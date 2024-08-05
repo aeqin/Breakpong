@@ -18,7 +18,6 @@ public class LivesGrid : MonoBehaviour
     private bool f_isMovingGrid = false;
     private float moveDuration = 0.2f;
 
-
     // Drop LifeBall variables
     private IEnumerator dropNextLifeBallCoroutine;
     private bool f_isDroppingLifeBall = false;
@@ -56,18 +55,10 @@ public class LivesGrid : MonoBehaviour
     /// </summary>
     private void MoveGridToOffset()
     {
-        if (f_isMovingGrid)
-        {
-            StopCoroutine(moveGridToOffsetCoroutine);
+        if (f_isMovingGrid) StopCoroutine(moveGridToOffsetCoroutine);
 
-            moveGridToOffsetCoroutine = CR_MoveGridToOffset(CalcGridOffset(), moveDuration);
-            StartCoroutine(moveGridToOffsetCoroutine);
-        }
-        else
-        {
-            moveGridToOffsetCoroutine = CR_MoveGridToOffset(CalcGridOffset(), moveDuration);
-            StartCoroutine(moveGridToOffsetCoroutine);
-        }
+        moveGridToOffsetCoroutine = CR_MoveGridToOffset(CalcGridOffset(), moveDuration);
+        StartCoroutine(moveGridToOffsetCoroutine);
     }
 
     /// <summary>
@@ -81,13 +72,13 @@ public class LivesGrid : MonoBehaviour
         float _currX = c_rectTransform.anchoredPosition.x;
         float _currY = c_rectTransform.anchoredPosition.y;
         float _endX = 0 + _offset;
-        float _elapsedStep = 0f;
+        float _progress = 0f;
 
-        while (_elapsedStep < 1)
+        while (_progress < 1)
         {
-            Vector2 _nextStepPos = new Vector2(Mathf.Lerp(_currX, _endX, _elapsedStep), _currY);
+            Vector2 _nextStepPos = new Vector2(Mathf.Lerp(_currX, _endX, _progress), _currY);
             c_rectTransform.anchoredPosition = _nextStepPos;
-            _elapsedStep += Time.deltaTime / _timeToMove;
+            _progress += Time.deltaTime / _timeToMove;
             yield return null;
         }
         c_rectTransform.anchoredPosition = new Vector2(_endX, _currY);
@@ -123,18 +114,10 @@ public class LivesGrid : MonoBehaviour
     /// </summary>
     private void DropNextLifeBall()
     {
-        if (f_isDroppingLifeBall)
-        {
-            StopCoroutine(dropNextLifeBallCoroutine);
+        if (f_isDroppingLifeBall) StopCoroutine(dropNextLifeBallCoroutine);
 
-            dropNextLifeBallCoroutine = CR_DropNextLifeBall(CalcDropDistance(), dropDuration);
-            StartCoroutine(dropNextLifeBallCoroutine);
-        }
-        else
-        {
-            dropNextLifeBallCoroutine = CR_DropNextLifeBall(CalcDropDistance(), dropDuration);
-            StartCoroutine(dropNextLifeBallCoroutine);
-        }
+        dropNextLifeBallCoroutine = CR_DropNextLifeBall(CalcDropDistance(), dropDuration);
+        StartCoroutine(dropNextLifeBallCoroutine);
     }
 
     /// <summary>
@@ -155,13 +138,13 @@ public class LivesGrid : MonoBehaviour
         float _currY = _dupeLifeBall.transform.position.y;
         float _currZ = _dupeLifeBall.transform.position.z;
         float _endY = _currY + _distToDrop;
-        float _elapsedStep = 0f;
+        float _progress = 0f;
 
-        while (_elapsedStep < 1)
+        while (_progress < 1)
         {
-            Vector3 _nextStepPos = new Vector3(_currX, Mathf.Lerp(_currY, _endY, _elapsedStep), _currZ);
+            Vector3 _nextStepPos = new Vector3(_currX, Mathf.Lerp(_currY, _endY, _progress), _currZ);
             _dupeLifeBall.transform.position = _nextStepPos;
-            _elapsedStep += Time.deltaTime / _timeToDrop;
+            _progress += Time.deltaTime / _timeToDrop;
             yield return null;
         }
         _dupeLifeBall.transform.position = new Vector3(_currX, _endY, _currZ);
