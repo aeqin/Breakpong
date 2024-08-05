@@ -9,6 +9,7 @@ public class Ball : MonoBehaviour
     protected CircleCollider2D c_circleCol;
     protected SpriteRenderer c_spriteRenderer;
     protected TrailRenderer c_trailRenderer;
+    [SerializeField] protected ColliderCircleTriggerChild c_circleTrigger;
 
     // Movement variables
     [SerializeField] private float baseMoveSpeed = 330f;
@@ -21,12 +22,19 @@ public class Ball : MonoBehaviour
     protected struct BallFlags // Ball "states" that are NOT mutually exclusive
     {
         public bool f_spawnSpores;
+        public bool f_hasGravity;
     }
     protected BallFlags currFlags;
 
     // BallSpore variables
     [SerializeField] private BallSpore pf_BallSpore;
     private int numSporesOnSpawn = 5; // How many BallSpores should be spawned
+
+    // BallGravity variables
+    [SerializeField] private ParticleSystem pf_gravityParticles;
+    private List<Ball> list_gravityInfluenced = new List<Ball>(); // What objects are influenced by the gravity of this Ball
+    private float baseGravityPull = 0.2f;
+    private float randomGravityModifier; // Slightly randomize gravity pull for each Ball, so split Balls don't circle eachother for eternity
 
     // SpeedStage variables
     private LimitInt li_collisionsBeforeSlowStage = new LimitInt(2, 0, 2);
@@ -42,6 +50,7 @@ public class Ball : MonoBehaviour
     // Collision variables
     [SerializeField] private ParticleSystem pf_onHitParticles;
     private int baseParticleNum = 5;
+    private float lastHitParticlesSpawnTime = 0f;
     private float particleMultiplier = 1.2f;
     private Color[] scoreMultiplierColors = new Color[5] { new Color32(120, 144, 156, 255), new Color32(43, 175, 43, 255), new Color32(69, 94, 222, 255), new Color32(156, 39, 176, 255), new Color32(229, 28, 35, 255) };
 
@@ -57,35 +66,33 @@ public class Ball : MonoBehaviour
         c_spriteRenderer = GetComponent<SpriteRenderer>();
         c_trailRenderer = GetComponent<TrailRenderer>();
 
+        // Initialize movement
         currMoveSpeed = baseMoveSpeed;
         c_rb.velocity = Vector3.right * currMoveSpeed;
 
+        // Initialize random
+        randomGravityModifier = UnityEngine.Random.Range(0.75f, 1.25f);
+
+        // Initialize display
         c_trailRenderer.startWidth = c_circleCol.radius * 2.0f;
         UpdateBallColor();
+
+        // Subscribe to signals
+        c_circleTrigger.EventOnTriggerEnter += OnTriggerEntered;
+        c_circleTrigger.EventOnTriggerExit += OnTriggerExited;
     }
 
     protected void FixedUpdate()
     {
-        switch (currState)
-        {
-            case BallState.NORMAL:
-                // Maintain constant speed
-                float _speedModifier = 1 + (li_speedStage.curr * percentSpeedPerStage);
-                c_rb.velocity = GetBallCurrDir() * currMoveSpeed * _speedModifier;
-
-                break;
-
-            case BallState.MAGNETIZED:
-                break;
-
-            default:
-                Debug.LogError("Add case to Ball:FixedUpdate() for BallState." + currState.ToString());
-                break;
-        }
-
-        UpdateBallColor();
-
+        // Move Ball
+        MoveByState();
         CheckWithinBounds();
+
+        // Do Ball
+        DoByFlag();
+
+        // Display Ball
+        UpdateBallColor();
     }
 
     /*********************************************************************************************************************************************************************************
@@ -124,6 +131,62 @@ public class Ball : MonoBehaviour
         if (!ManagerLevel.Instance.IsPosInsideLevel(transform.position)) // Is Ball outside of level boundaries? (from physics shenanigans)
         {
             ManagerBall.Instance.OnBallBeyondBounds(this);
+        }
+    }
+    
+    /// <summary>
+    /// Based on this Ball's state, move each physics frame
+    /// </summary>
+    protected void MoveByState()
+    {
+        switch (currState)
+        {
+            case BallState.NORMAL:
+                // Maintain constant speed
+                float _speedModifier = 1 + (li_speedStage.curr * percentSpeedPerStage);
+                c_rb.velocity = GetBallCurrDir() * currMoveSpeed * _speedModifier;
+
+                break;
+
+            case BallState.MAGNETIZED:
+                break; // Do not move
+
+            default:
+                Debug.LogError("Add case to Ball:MoveByState() for BallState." + currState.ToString());
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Based on this Ball's flags, do stuff per physics frame
+    /// </summary>
+    protected void DoByFlag()
+    {
+        // Ball currently draws other Balls towards it
+        if (currFlags.f_hasGravity)
+        {
+            DoGravityPull();
+        }
+    }
+
+    /// <summary>
+    /// Draw in other Balls within range of influence
+    /// </summary>
+    protected void DoGravityPull()
+    {
+        for (int i = list_gravityInfluenced.Count - 1; i >= 0; i--)
+        {
+            Ball _satellite = list_gravityInfluenced[i];
+            if (_satellite != null)
+            {
+                Vector2 _dirFromSatelliteToMe = (transform.position - _satellite.transform.position).normalized;
+                Vector2 _pullForce = _dirFromSatelliteToMe * c_circleCol.radius * baseGravityPull; // Scale pull force by size of Ball
+                _satellite.InfluenceVelocity(randomGravityModifier * _pullForce); // Each Ball, even same size, has slightly different pull force 
+            }
+            else
+            {
+                list_gravityInfluenced.RemoveAt(i); // Remove null Ball
+            }
         }
     }
 
@@ -218,6 +281,13 @@ public class Ball : MonoBehaviour
         switch (currState)
         {
             case BallState.NORMAL:
+                // Make sure to limit particles
+                if (Time.time < lastHitParticlesSpawnTime + 0.01f)
+                {
+                    return;
+                }
+                lastHitParticlesSpawnTime = Time.time;
+
                 // Instantiate hit particles
                 ParticleSystem _ps = Instantiate(pf_onHitParticles, _spawnPos, Quaternion.identity);
 
@@ -291,6 +361,10 @@ public class Ball : MonoBehaviour
             _grad.SetKeys(new GradientColorKey[] { new GradientColorKey(c_spriteRenderer.color, 0.0f), new GradientColorKey(speedColors[li_speedStage.curr], 0.5f) }, new GradientAlphaKey[] { new GradientAlphaKey(0.7f, 0.0f), new GradientAlphaKey(0.2f, 1.0f) });
             c_trailRenderer.colorGradient = _grad;
         }
+
+        // Play or stop gravity particles
+        if (currFlags.f_hasGravity) pf_gravityParticles.Play();
+        else pf_gravityParticles.Stop();
     }
     #endregion
 
@@ -298,6 +372,14 @@ public class Ball : MonoBehaviour
      * Public Methods
      *********************************************************************************************************************************************************************************/
     #region Public Methods
+    /// <summary>
+    /// Returns the current radius of this Ball
+    /// </summary>
+    public float GetBallRadius()
+    {
+        return c_circleCol.radius;
+    }
+
     /// <returns>The normalized velocity of the Ball (direction)</returns>
     public Vector2 GetBallCurrDir()
     {
@@ -364,6 +446,14 @@ public class Ball : MonoBehaviour
     }
 
     /// <summary>
+    /// Influence Ball velocity
+    /// </summary>
+    public void InfluenceVelocity(Vector2 _influence)
+    {
+        c_rb.velocity += _influence;
+    }
+
+    /// <summary>
     /// On Brick hit, increase Ball score multiplier (up to max), and tell ManagerLevel to increase the score
     /// </summary>
     public void UpdateBallScoreMultiplierOnBrickHit()
@@ -390,6 +480,15 @@ public class Ball : MonoBehaviour
     public void SetBallSporeSpawner(bool _doSpawnSpores)
     {
         currFlags.f_spawnSpores = _doSpawnSpores;
+    }
+
+    /// <summary>
+    /// Sets whether or not this Ball will influece velocity of other Balls in range
+    /// </summary>
+    public void SetBallDoesGravity(bool _hasGravity)
+    {
+        currFlags.f_hasGravity = _hasGravity;
+        UpdateBallColor(); // Play gravity particles
     }
 
     /// <summary>
@@ -424,5 +523,32 @@ public class Ball : MonoBehaviour
         // Do additional work on collision
         OnCollisionDo(collision);
     }
+
+    /// <summary>
+    /// Event called by signal sent from ColliderCircleTriggerChild
+    /// </summary>
+    protected void OnTriggerEntered(Collider2D collision)
+    {
+        if (!currFlags.f_hasGravity) return;
+
+        // Did Ball enter gravity influence?
+        if (collision.gameObject.TryGetComponent<Ball>(out Ball _satellite))
+        {
+            list_gravityInfluenced.Add(_satellite);
+        }
+    }
+
+    /// <summary>
+    /// Event called by signal sent from ColliderCircleTriggerChild
+    /// </summary>
+    protected void OnTriggerExited(Collider2D collision)
+    {
+        // Did Ball exit gravity influence?
+        if (collision.gameObject.TryGetComponent<Ball>(out Ball _satellite))
+        {
+            list_gravityInfluenced.RemoveAll(_ball => _ball == _satellite);
+        }
+    }
+
     #endregion
 }

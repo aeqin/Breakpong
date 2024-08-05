@@ -92,11 +92,25 @@ public class ManagerBall : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Designate all Balls to spawn BallSpores
+    /// </summary>
     private void SporeBalls()
     { 
         foreach (Ball _ball in list_Balls)
         {
             _ball.SetBallSporeSpawner(true); // Allow active Ball to spawn BallSpores on collision
+        }
+    }
+
+    /// <summary>
+    /// Designate all Balls to do pull gravity
+    /// </summary>
+    private void GravityBalls()
+    {
+        foreach (Ball _ball in list_Balls)
+        {
+            _ball.SetBallDoesGravity(true); // Allow active Ball to influence velocity of other Balls in range
         }
     }
     #endregion
@@ -106,7 +120,7 @@ public class ManagerBall : MonoBehaviour
      *********************************************************************************************************************************************************************************/
     #region Public Methods
     /// <summary>
-    /// Ask BallManager to handle event when Ball enters Deathzone
+    /// Ask BallManager to check whether Ball is alive
     /// </summary>
     public bool IsBallAlive(Ball _testBall)
     {
@@ -146,6 +160,10 @@ public class ManagerBall : MonoBehaviour
 
             case ManagerPowerup.PowerupType.BallSpore:
                 SporeBalls();
+                break;
+
+            case ManagerPowerup.PowerupType.BallGravity:
+                GravityBalls();
                 break;
 
             default:

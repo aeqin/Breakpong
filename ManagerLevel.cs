@@ -131,8 +131,9 @@ public class ManagerLevel : MonoBehaviour
                     {ManagerPowerup.PowerupType.PaddleGrowPaddle, 25},
                     {ManagerPowerup.PowerupType.PaddleShrinkPaddle, 8},
                     {ManagerPowerup.PowerupType.PaddleLaser, 10},
-                    {ManagerPowerup.PowerupType.BallSplit, 50},
+                    {ManagerPowerup.PowerupType.BallSplit, 45},
                     {ManagerPowerup.PowerupType.BallSpore, 10},
+                    {ManagerPowerup.PowerupType.BallGravity, 10},
                 };
                 break;
         }

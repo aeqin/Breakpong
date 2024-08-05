@@ -1333,13 +1333,13 @@ public class Paddle : MonoBehaviour
         Vector3 _botOfPaddle = transform.position + new Vector3(0, _offset.y - c_spriteRenderer.size.y, 0);
 
         // Update top aim trajectory
-        RaycastHit2D _topHit = Physics2D.Raycast(_topOfPaddle, Vector2.right * dirToCenter, Screen.width, ~LayerMask.GetMask("Paddle"));
+        RaycastHit2D _topHit = Physics2D.Raycast(_topOfPaddle, Vector2.right * dirToCenter, Screen.width, ~LayerMask.GetMask("Paddle", "FX"));
         if (_topHit) _PA_Laser.topAim.UpdateEndPos(_topHit.point);
         else _PA_Laser.topAim.UpdateEndPos(_topOfPaddle + Vector3.right * dirToCenter * Screen.width);
         _PA_Laser.topAim.UpdateStartPos(_topOfPaddle);
 
         // Update bot aim trajectory
-        RaycastHit2D _botHit = Physics2D.Raycast(_botOfPaddle, Vector2.right * dirToCenter, Screen.width, ~LayerMask.GetMask("Paddle"));
+        RaycastHit2D _botHit = Physics2D.Raycast(_botOfPaddle, Vector2.right * dirToCenter, Screen.width, ~LayerMask.GetMask("Paddle", "FX"));
         if (_botHit) _PA_Laser.botAim.UpdateEndPos(_botHit.point);
         else _PA_Laser.botAim.UpdateEndPos(_botOfPaddle + Vector3.right * dirToCenter * Screen.width);
         _PA_Laser.botAim.UpdateStartPos(_botOfPaddle);

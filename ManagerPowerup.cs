@@ -37,6 +37,7 @@ public class ManagerPowerup : MonoBehaviour
 
         BallSplit,
         BallSpore,
+        BallGravity,
     }
 
     [SerializeField] private Powerup pf_powerup;
@@ -51,6 +52,7 @@ public class ManagerPowerup : MonoBehaviour
     [SerializeField] private Sprite spr_laser;
     [SerializeField] private Sprite spr_ballSplit;
     [SerializeField] private Sprite spr_ballSpore;
+    [SerializeField] private Sprite spr_ballGravity;
 
     // PowerupDropEngine
     private PowerupDropEngine currPowerupDropEngine;
@@ -212,6 +214,9 @@ public class ManagerPowerup : MonoBehaviour
             case PowerupType.BallSpore:
                 return spr_ballSpore;
 
+            case PowerupType.BallGravity:
+                return spr_ballGravity;
+
             default:
                 Debug.LogError("Add case to ManagerPowerup:GetSpriteFromPowerupType() for Powerup." + _powerUp.ToString());
                 break;
@@ -232,6 +237,7 @@ public class ManagerPowerup : MonoBehaviour
             // Powerup affects Balls
             case PowerupType.BallSplit:
             case PowerupType.BallSpore:
+            case PowerupType.BallGravity:
                 ManagerBall.Instance.OnPowerupPickup(_powerUp);
                 break;
 
