@@ -59,8 +59,14 @@ public class ManagerPowerup : MonoBehaviour
     // Class used to store & calculate Powerup droprates
     public class PowerupDropEngine
     {
+        // Random weight variables
         private Dictionary<PowerupType, int> dict_pwrType_weight;
         int totalWeight = 0;
+
+        // Prevent overlapping Powerup spawn variables
+        private Dictionary<Bounds, float> dict_noSpawnZone_timeClear = new Dictionary<Bounds, float>();
+        private Vector3 preventSpawnBoundsSize = new Vector3(64f * 5, 64f * 5, 0); // No spawn zone is about 5 Bricks tall & wide
+        private float durationOfNoSpawnZone = 1f;
 
         public PowerupDropEngine(Dictionary<PowerupType, int> _dict_pwrType_weight)
         {
@@ -71,6 +77,38 @@ public class ManagerPowerup : MonoBehaviour
             {
                 totalWeight += _weight;
             }
+        }
+
+        /// <summary>
+        /// Returns whether or not Powerup can spawn at given position. Checks position against dictionary of "no spawn" zones.
+        /// </summary>
+        private bool CanSpawnPowerupAt(Vector2 _powerUpSpawnPos)
+        {
+            bool _canSpawn = true; // Assumes can spawn Powerup at position
+
+            List<Bounds> _noSpawnZonesToRemove = new List<Bounds>();
+            foreach ((Bounds _noSpawnZone, float _noSpawnEndTime) in dict_noSpawnZone_timeClear) // Check position against all zones of "no spawn"
+            {
+                if (Time.time > _noSpawnEndTime) // Lifetime of this "no spawn" zone is over, so add to list to remove
+                {
+                    _noSpawnZonesToRemove.Add(_noSpawnZone);
+                    continue; // No need to check position against "removed" zone
+                }
+
+                if (_noSpawnZone.Contains(_powerUpSpawnPos)) // Is potential spawn position inside "no spawn" zone?
+                {
+                    _canSpawn = false;
+                    break; // Break loop once decided that Powerup cannot be spawned at position
+                }
+            }
+
+            // Remove zones that ran out of lifetime
+            foreach(Bounds _remZone in _noSpawnZonesToRemove)
+            {
+                dict_noSpawnZone_timeClear.Remove(_remZone);
+            }
+
+            return _canSpawn;
         }
 
         /// <summary>
@@ -95,22 +133,35 @@ public class ManagerPowerup : MonoBehaviour
         }
 
         /// <summary>
-        /// Returns the next PowerupType to be randomly selected, based on its weight
+        /// Returns the next PowerupType to be randomly selected, based on its weight. Makes sure to prevent Powerups from spawning too close together
         /// </summary>
-        public PowerupType Next()
+        public PowerupType Next(Vector2 _powerUpSpawnPos)
         {
-            float _randRoll = Mathf.Clamp(Random.Range(0f, 1.0f) * totalWeight, 1, totalWeight); // Lay out a road (Clamp 1 as minimum so 0 weights NEVER reach the end of the road)
+            PowerupType _nextPowerupToReturn = PowerupType.None;
 
+            // Check if requested spawn position is currently inside a "no spawn" zone, if so return PowerupType.None
+            if (!CanSpawnPowerupAt(_powerUpSpawnPos)) return _nextPowerupToReturn;
+
+            // Use engine to randomly roll next Powerup to spawn
+            float _randRoll = Mathf.Clamp(Random.Range(0f, 1.0f) * totalWeight, 1, totalWeight); // Lay out a road (Clamp 1 as minimum so 0 weights NEVER reach the end of the road)
             foreach ((PowerupType _pwrType, int _weight) in dict_pwrType_weight)
             {
                 _randRoll -= _weight; // Travel the road by weight of each PowerupType (larger weights travel more distance, better chance of reaching end of road)
-                if (_randRoll < 0f) // Reaching the end of the road, return the PowerupType
+                if (_randRoll < 0f) // Reached the end of the road, choose this PowerupType
                 {
-                    return _pwrType;
+                    _nextPowerupToReturn = _pwrType;
+                    break;
                 }
             }
 
-            return PowerupType.None;
+            // If spawning a Powerup, then prevent spawning more Powerups in that zone for a bit
+            if(_nextPowerupToReturn != PowerupType.None)
+            {
+                Bounds _noSpawnZone = new Bounds(_powerUpSpawnPos, preventSpawnBoundsSize); // Zone size
+                dict_noSpawnZone_timeClear[_noSpawnZone] = Time.time + durationOfNoSpawnZone; // Zone lifetime
+            }
+
+            return _nextPowerupToReturn;
         }
 
         /// <summary>
@@ -148,7 +199,7 @@ public class ManagerPowerup : MonoBehaviour
         PowerupType _powerupType; // Type of created Powerup
         if (_requestedPowerupType == ManagerPowerup.PowerupType.Anything)
         {
-            _powerupType = currPowerupDropEngine.Next(); // Can be anything, so randomly roll a Powerup allowed for this level
+            _powerupType = currPowerupDropEngine.Next(_spawnPos); // Can be anything, so randomly roll a Powerup allowed for this level
             if (_powerupType == ManagerPowerup.PowerupType.None)
             {
                 return null; // Randomly rolled a "None" Powerup

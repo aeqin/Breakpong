@@ -417,7 +417,8 @@ public class Ball : MonoBehaviour
     public Vector2 FreezeBallOnPaddle(Bounds _paddleBounds)
     {
         // Edge of Paddle + radius of Ball = position of Ball without any overlapping colliders
-        Vector3 _paddleEdgePlusBall = _paddleBounds.center + new Vector3(_paddleBounds.extents.x + c_circleCol.radius, transform.position.y, 0);
+        float _left_or_right = Mathf.Sign(transform.position.x - _paddleBounds.center.x);
+        Vector3 _paddleEdgePlusBall = _paddleBounds.center + new Vector3((_paddleBounds.extents.x + c_circleCol.radius) * _left_or_right, transform.position.y, 0);
         transform.position = _paddleEdgePlusBall;
 
         // Freeze Ball

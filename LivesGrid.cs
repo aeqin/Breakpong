@@ -102,7 +102,7 @@ public class LivesGrid : MonoBehaviour
             _topOfLevelWorldPos = _hit.point;
             _topOfLevelScreenPos = Camera.main.WorldToScreenPoint(_topOfLevelWorldPos);
 
-            return (_topOfLevelScreenPos - _nextLifeBallScreenPos).y;
+            return (_topOfLevelScreenPos - _nextLifeBallScreenPos).y - 14f; // Also subtract Ball radius
         }
 
         Debug.LogError("LivesGrid:CalcDropDistance(), cannot find top of level.");
