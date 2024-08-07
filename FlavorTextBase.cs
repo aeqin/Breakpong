@@ -15,9 +15,14 @@ public class FlavorTextBase : MonoBehaviour
     protected bool f_doFade = false;
     protected Gradient fadeGradiant;
 
-    // GrowFlash variables
+    // ShrinkToPoint variables
+    protected bool f_isShrinking = false;
+    protected IEnumerator shrinkCoroutine;
+    protected float shrinkDuration = 0.2f;
+
+    // Grow variables
     protected bool f_isGrowing = false;
-    [SerializeField] protected AnimationCurve growCurve;
+    [SerializeField] protected AnimationCurve growCurve; // Slightly over shoot 1.0 then back, for a "pop" effect
     protected IEnumerator growCoroutine;
     protected float growDuration = 0.3f;
     protected float growOvershoot = 0.25f; // When growing, how much to overshoot by, before going back to scale 1.0
@@ -103,7 +108,60 @@ public class FlavorTextBase : MonoBehaviour
     }
 
     /// <summary>
-    /// Coroutine that moves the next LifeBall into the level bounds
+    /// Returns the given (world) position as a local position
+    /// </summary>
+    protected virtual Vector3 ToLocalPos(Vector3 _worldPos)
+    {
+        return transform.InverseTransformPoint(_worldPos);
+    }
+
+    /// <summary>
+    /// Coroutine that shrinks text
+    /// </summary>
+    protected IEnumerator CR_ShrinkToPointText(Vector3 _worldPosToShrinkTo, float _duration, bool _destroyOnShrunk = true)
+    {
+        // ### BEFORE
+        f_isShrinking = true;
+
+        Vector3 _localPosToShrinkTo = ToLocalPos(_worldPosToShrinkTo); // Vertices work in local position, so transform world pos to local pos
+        Vector3[] _modifiedVertices = new Vector3[c_TMP.mesh.vertexCount]; // Array of vertices to modify
+        TMP_TextInfo _textInfo = c_TMP.textInfo;
+
+        // ### DURING
+        float _linearProgress = 0f; // Equal step per frame
+        while (_linearProgress < 1)
+        {
+            // Update progress
+            _linearProgress += Time.deltaTime / _duration;
+
+            // Loop through each character in text
+            foreach (TMP_CharacterInfo _charInfo in _textInfo.characterInfo)
+            {
+                // Loop through each of the 4 vertices of the character
+                for (int _vertexNum = 0; _vertexNum < 4; _vertexNum++)
+                {
+                    int _charVertexIndex = _charInfo.vertexIndex + _vertexNum; // Index of particular vertex in array of all text vertices
+
+                    // Move vertex from original position towards world position
+                    Vector3 _origPos = c_TMP.mesh.vertices[_charVertexIndex];
+                    _modifiedVertices[_charVertexIndex] = Vector3.Lerp(_origPos, _localPosToShrinkTo, _linearProgress);
+                }
+            }
+
+            // Set TextMeshPro's mesh to be the modified vertex array
+            c_TMP.textInfo.meshInfo[0].vertices = _modifiedVertices;
+            c_TMP.UpdateVertexData();
+
+            yield return null;
+        }
+
+        // ### AFTER
+        if (_destroyOnShrunk) DestroyFlavorText();
+        f_isShrinking = false;
+    }
+
+    /// <summary>
+    /// Coroutine that grows text
     /// </summary>
     protected IEnumerator CR_GrowText(Vector3 _offsetToGrowFrom, float _overshootRatio, AnimationCurve _curve, float _duration, bool _growFromPoint)
     {
@@ -114,7 +172,7 @@ public class FlavorTextBase : MonoBehaviour
         _curve.keys[_curvePeakKeyIndex].value = 1f + _overshootRatio;
 
         Vector3 _originPoint = Vector3.zero + _offsetToGrowFrom; // Origin point for EVERY vertex to grow from
-        Vector3[] _charVertices = new Vector3[c_TMP.mesh.vertexCount]; // Array of vertices to modify
+        Vector3[] _modifiedVertices = new Vector3[c_TMP.mesh.vertexCount]; // Array of vertices to modify
         TMP_TextInfo _textInfo = c_TMP.textInfo;
 
         // ### DURING
@@ -138,16 +196,16 @@ public class FlavorTextBase : MonoBehaviour
                     if (_growFromPoint)
                     {
                         Vector3 _endPos = c_TMP.mesh.vertices[_charVertexIndex];
-                        _charVertices[_charVertexIndex] = Vector3.Lerp(_originPoint, _endPos, _nonLinearProgress);
+                        _modifiedVertices[_charVertexIndex] = Vector3.Lerp(_originPoint, _endPos, _nonLinearProgress);
                     }
 
                     // Scale vertex (for a bit of growth past 1.0 scale)
-                    if (_nonLinearProgress > 1.0) _charVertices[_charVertexIndex] *= _nonLinearProgress;
+                    if (_nonLinearProgress > 1.0) _modifiedVertices[_charVertexIndex] *= _nonLinearProgress;
                 }
             }
 
             // Set TextMeshPro's mesh to be the modified vertex array
-            c_TMP.textInfo.meshInfo[0].vertices = _charVertices;
+            c_TMP.textInfo.meshInfo[0].vertices = _modifiedVertices;
             c_TMP.UpdateVertexData();
 
             yield return null;
@@ -224,6 +282,19 @@ public class FlavorTextBase : MonoBehaviour
     public void ChangeColor(Color _color)
     {
         c_TMP.color = _color;
+    }
+
+    /// <summary>
+    /// Starts Coroutine that shrinks text towards a world position
+    /// </summary>
+    public void ShrinkText(Vector3 _worldPosToShrinkTo, float _shrinkDuration = -1f)
+    {
+        if (_shrinkDuration < 0f) _shrinkDuration = shrinkDuration;
+
+        if (f_isShrinking) StopCoroutine(shrinkCoroutine);
+
+        shrinkCoroutine = CR_ShrinkToPointText(_worldPosToShrinkTo, _shrinkDuration);
+        StartCoroutine(shrinkCoroutine);
     }
 
     /// <summary>

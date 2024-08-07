@@ -1352,8 +1352,8 @@ public class Paddle : MonoBehaviour
     {
         PaddleActionLaser _PA_Laser = (PaddleActionLaser)_PA; // Cast base PaddleAction into PaddleActionLaser
 
-        Destroy(_PA_Laser.topAim);
-        Destroy(_PA_Laser.botAim);
+        Destroy(_PA_Laser.topAim.gameObject);
+        Destroy(_PA_Laser.botAim.gameObject);
     }
     #endregion
     #endregion

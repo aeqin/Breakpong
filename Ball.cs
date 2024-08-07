@@ -28,7 +28,9 @@ public class Ball : MonoBehaviour
 
     // BallSpore variables
     [SerializeField] private BallSpore pf_BallSpore;
-    private int numSporesOnSpawn = 5; // How many BallSpores should be spawned
+    private int numSporesOnSpawn = 3; // How many BallSpores should be spawned
+    private float sporeSpawnCooldown = 0.2f;
+    private float sporeSpawnOKTime = 0f;
 
     // BallGravity variables
     [SerializeField] private ParticleSystem pf_gravityParticles;
@@ -257,6 +259,10 @@ public class Ball : MonoBehaviour
     {
         if (!currFlags.f_spawnSpores) return; // Cannot spawn BallSpores
         if (currState == BallState.MAGNETIZED) return; // Cannot spawn BallSpores when magnetized
+
+        // Spore spawn cooldown
+        if (!(Time.time > sporeSpawnOKTime)) return; // Cannot spawn BallSpores when on cooldown
+        sporeSpawnOKTime = Time.time + sporeSpawnCooldown;
 
         // Spawn a number of BallSpores
         float _randAngleOffset = UnityEngine.Random.Range(0f, 360f); // Start with a random angle offset

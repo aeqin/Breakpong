@@ -19,4 +19,17 @@ public class FlavorTextUI : FlavorTextBase
     {
         base.Initialize(_displayText, _textColor, _textSize, _lifetime, _doFade);
     }
+
+    /*********************************************************************************************************************************************************************************
+     * Protected Methods
+     *********************************************************************************************************************************************************************************/
+    #region Protected Methods
+    /// <summary>
+    /// Returns the given (world) position as a local position
+    /// </summary>
+    protected override Vector3 ToLocalPos(Vector3 _worldPos)
+    {
+        return transform.InverseTransformPoint(Camera.main.WorldToScreenPoint(_worldPos));
+    }
+    #endregion
 }

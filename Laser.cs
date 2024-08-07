@@ -102,6 +102,8 @@ public class Laser : MonoBehaviour
         {
             // Destroy Powerup
             ManagerPowerup.Instance.OnLaserHitPowerup(this, _powerup);
+
+            DestroyLaser(); // Destroy Laser on hit
         }
 
         // Did Laser hit Ball?
@@ -109,9 +111,9 @@ public class Laser : MonoBehaviour
         {
             // Slightly influence Ball velocity
             _ball.OnLaserHitBall(this);
-        }
 
-        DestroyLaser(); // Destroy Laser on hit
+            DestroyLaser(); // Destroy Laser on hit
+        }
     }
     #endregion
 }
