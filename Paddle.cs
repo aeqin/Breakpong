@@ -46,6 +46,7 @@ public class Paddle : MonoBehaviour
     protected PaddleAction PA_GrowPaddle;
     protected PaddleAction PA_ShrinkPaddle;
     protected PaddleAction PA_Laser;
+    protected PaddleAction PA_Shield;
 
     /// <summary>
     /// Class used to hold the methods for a PaddleAction depending on event if the action button is pressed, held, release, or collision, etc.
@@ -239,6 +240,10 @@ public class Paddle : MonoBehaviour
             duringPhysicsMethod = PaddleActionLaserDuring,
             onUnassignMethod = PaddleActionLaserUnassign,
         };
+        PA_Shield = new PaddleActionShield(pf_PASharedLib.spr_Shield, null, 3, -1f)
+        {
+            onPressActionMethod = PaddleActionShieldPress,
+        };
 
         list_PA.Add(PA_Empty);
         list_PA.Add(PA_Magnet);
@@ -248,6 +253,7 @@ public class Paddle : MonoBehaviour
         list_PA.Add(PA_GrowPaddle);
         list_PA.Add(PA_ShrinkPaddle);
         list_PA.Add(PA_Laser);
+        list_PA.Add(PA_Shield);
     }
 
     /// <summary>
@@ -746,6 +752,9 @@ public class Paddle : MonoBehaviour
                 break;
             case ManagerPowerup.PowerupType.PaddleLaser:
                 AssignNextAction(PA_Laser);
+                break;
+            case ManagerPowerup.PowerupType.PaddleShield:
+                AssignNextAction(PA_Shield);
                 break;
 
             default:
@@ -1354,6 +1363,31 @@ public class Paddle : MonoBehaviour
 
         Destroy(_PA_Laser.topAim.gameObject);
         Destroy(_PA_Laser.botAim.gameObject);
+    }
+    #endregion
+
+    #region PaddleActionShield
+    protected class PaddleActionShield : PaddleAction
+    {
+        public float xDist = 140f; // How far should PaddleShield move away from Paddle?
+        public float timeToTravel = 0.5f; // How fast should PaddleShield arrive at end point?
+        public float timeActive = 4f; // How long should PaddleShield exist?
+
+        public PaddleActionShield(Sprite _sUP, Sprite _sP, int _nP = -1, float _aD = -1f) : base(_sUP, _sP, _nP, _aD) { }
+    }
+
+    /// <summary>
+    /// On press (of button) of PaddleAction Shield. Spawns a PaddleShield that reflects things
+    /// </summary>
+    /// <returns>Returns true</returns>
+    protected bool PaddleActionShieldPress(PaddleAction _PA)
+    {
+        PaddleActionShield _PA_Shield = (PaddleActionShield)_PA; // Cast base PaddleAction into PaddleActionShield
+
+        PaddleShield _shield = Instantiate(pf_PASharedLib.pf_PaddleShield, transform.position, transform.rotation); // Spawn PaddleShield from Paddle
+        _shield.Initialize(c_boxCol, c_spriteRenderer.size.y, _PA_Shield.xDist * dirToCenter, _PA_Shield.timeToTravel, _PA_Shield.timeActive); // Shield is same size as current Paddle size
+
+        return true;
     }
     #endregion
     #endregion

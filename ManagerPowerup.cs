@@ -34,6 +34,7 @@ public class ManagerPowerup : MonoBehaviour
         PaddleGrowPaddle,
         PaddleShrinkPaddle,
         PaddleLaser,
+        PaddleShield,
 
         BallSplit,
         BallSpore,
@@ -50,6 +51,7 @@ public class ManagerPowerup : MonoBehaviour
     [SerializeField] private Sprite spr_growPaddle;
     [SerializeField] private Sprite spr_shrinkPaddle;
     [SerializeField] private Sprite spr_laser;
+    [SerializeField] private Sprite spr_shield;
     [SerializeField] private Sprite spr_ballSplit;
     [SerializeField] private Sprite spr_ballSpore;
     [SerializeField] private Sprite spr_ballGravity;
@@ -258,6 +260,9 @@ public class ManagerPowerup : MonoBehaviour
 
             case PowerupType.PaddleLaser:
                 return spr_laser;
+
+            case PowerupType.PaddleShield:
+                return spr_shield;
 
             case PowerupType.BallSplit:
                 return spr_ballSplit;

@@ -13,6 +13,7 @@ public class PaddleSharedLib : MonoBehaviour
     [SerializeField] public Sprite spr_GrowPaddle;
     [SerializeField] public Sprite spr_ShrinkPaddle;
     [SerializeField] public Sprite spr_Laser;
+    [SerializeField] public Sprite spr_Shield;
 
     [SerializeField] public LineRendererRadial pf_RadialLineRenderer; // Used to display duration/presses left around each icon
 
@@ -20,4 +21,6 @@ public class PaddleSharedLib : MonoBehaviour
 
     [SerializeField] public Laser pf_Laser; // Prefab of laser
     [SerializeField] public LineRendererDotted pf_LineRendererDotted; // Used to display Laser path
+
+    [SerializeField] public PaddleShield pf_PaddleShield; // Prefab of PaddleShield
 }

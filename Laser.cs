@@ -114,6 +114,12 @@ public class Laser : MonoBehaviour
 
             DestroyLaser(); // Destroy Laser on hit
         }
+
+        // Did Laser hit Shield?
+        if (collision.gameObject.TryGetComponent<PaddleShield>(out PaddleShield _shield))
+        {
+            ReflectLaser(); // Reverse Laser direction
+        }
     }
     #endregion
 }

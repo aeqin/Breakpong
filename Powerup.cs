@@ -76,7 +76,15 @@ public class Powerup : MonoBehaviour
     {
         return powerUpType;
     }
-    
+
+    /// <summary>
+    /// Reverse the direction of this Powerup
+    /// </summary>
+    public void ReversePowerupDir()
+    {
+        powerUpXDir *= -1;
+    }
+
     /// <summary>
     /// Destroy this Powerup, spawn a ParticleSystem
     /// </summary>
@@ -97,6 +105,12 @@ public class Powerup : MonoBehaviour
         if (collision.gameObject.TryGetComponent<Paddle>(out Paddle _paddle))
         {
             ManagerPowerup.Instance.OnPowerupHitPaddle(this, _paddle);
+        }
+
+        // Did Powerup hit Shield?
+        if (collision.gameObject.TryGetComponent<PaddleShield>(out PaddleShield _shield))
+        {
+            ReversePowerupDir(); // Reverse the move direction of this Powerup
         }
     }
     #endregion
