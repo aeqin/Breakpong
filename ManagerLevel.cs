@@ -39,6 +39,88 @@ public class ManagerLevel : MonoBehaviour
     // Current level variables
     private int currLevel = 0;
 
+    // Combo
+    [SerializeField] private FlavorTextWorld pf_comboPopupText;
+    [SerializeField] private FlavorTextUI pf_comboText;
+    [SerializeField] private FlavorTextUI pf_comboScoreMultiplierText;
+    private Vector3 lastBrickHitPos = Vector3.zero;
+    private ComboEngine currComboEngine = new ComboEngine();
+    /// <summary>
+    /// Class used to store & calculate current combo (which increases score gain)
+    /// </summary>
+    private class ComboEngine
+    {
+        private int currentWholeCombo = 0;
+        private int currentComboLeftToCount = 0;
+        private LimitInt nextComboToIncreaseMultiplier = new LimitInt(3, 3, 9999); // Takes 3 combo to increase score multiplier to 2x, then +1 combo for subsequent multiplier increment
+        private LimitInt currentComboScoreMultiplier = new LimitInt(1, 1, 9999); // Score multiplier starts at 1x
+        private float resetComboTime = 0f;
+        private float comboExtensionDuration = 1f; // Every time combo is incremented, add this time before combo is reset
+
+        public enum RunResult {COMBO_RESET, SCORE_MULTIPLIER_INCREASED, SCORE_MULTIPLIER_SAME}
+
+        public ComboEngine() { }
+
+        public int GetCombo()
+        {
+            return currentWholeCombo;
+        }
+
+        public int GetComboScoreMultiplier()
+        {
+            return currentComboScoreMultiplier.curr;
+        }
+
+        /// <summary>
+        /// Run engine per physics frame. Checks to see if combo should be reset, or whether combo should increase score multiplier.
+        /// </summary>
+        /// <returns>Returns an enum RunResult. Combo was reset, combo score multiplier increased, or combo score multiplier remained the same.</returns>
+        public RunResult RunComboEngine()
+        {
+            if (Time.time > resetComboTime)
+            {
+                ResetCombo();
+                return RunResult.COMBO_RESET;
+            }
+            else
+            {
+                bool _f_multiplierIncreased = false;
+                while (currentComboLeftToCount > 0)
+                {
+                    // Every time score multiplier is increased, amount of combo required increases (so 3 combo for 2x, then 4 combo for 3x, 5 combo for 4x, and so on...)
+                    if (currentComboLeftToCount >= nextComboToIncreaseMultiplier.curr)
+                    {
+                        currentComboLeftToCount -= nextComboToIncreaseMultiplier.curr;
+                        nextComboToIncreaseMultiplier.Increment(); // +1 combo needed for next score multiplier increase
+                        currentComboScoreMultiplier.Increment(); // Add 1x to score multiplier
+                        _f_multiplierIncreased = true;
+                    }
+                    else
+                    {
+                        break; // Not enough combo to increase score multiplier, so break out of loop
+                    }
+                }
+
+                return _f_multiplierIncreased ? RunResult.SCORE_MULTIPLIER_INCREASED : RunResult.SCORE_MULTIPLIER_SAME;
+            }
+        }
+
+        public void IncrementComboBy(int _combo = 1)
+        {
+            currentWholeCombo += _combo;
+            currentComboLeftToCount += _combo;
+            resetComboTime = Time.time + comboExtensionDuration; // Extend time before combo is reset
+        }
+
+        public void ResetCombo()
+        {
+            currentWholeCombo = 0;
+            currentComboLeftToCount = 0;
+            currentComboScoreMultiplier.resetToMin();
+            nextComboToIncreaseMultiplier.resetToMin();
+        }
+    }
+
     void Update()
     {
         if (Input.GetKeyDown("k"))
@@ -50,6 +132,22 @@ public class ManagerLevel : MonoBehaviour
             Time.timeScale = 0.0f;
             ManagerPaddle.Instance.GetPaddleLeft().PrintCurrPaddleActions();
             ManagerPaddle.Instance.GetPaddleRight().PrintCurrPaddleActions();
+        }
+    }
+
+    private void FixedUpdate()
+    {
+        // Calculate combo & potentially update combo score multiplier
+        ComboEngine.RunResult _comboResult = currComboEngine.RunComboEngine();
+        if (_comboResult == ComboEngine.RunResult.SCORE_MULTIPLIER_INCREASED)
+        {
+            // Combo increased the score multiplier, so display a Flavor text at last location of combo increase
+            SpawnComboFlavorText();
+        }
+        else if (_comboResult == ComboEngine.RunResult.COMBO_RESET)
+        {
+            // Too much time passed before gaining new combo
+            ResetComboDisplayText();
         }
     }
 
@@ -91,6 +189,10 @@ public class ManagerLevel : MonoBehaviour
         score = 0;
         UpdateScore(0);
 
+        // Reset combo
+        currComboEngine.ResetCombo();
+        ResetComboDisplayText();
+
         // Reset PowerupDropEngine for current level
         ManagerPowerup.Instance.ResetPowerupDropEngine(GetPowerupWeightDictForLevel(currLevel));
 
@@ -111,8 +213,49 @@ public class ManagerLevel : MonoBehaviour
     /// </summary>
     private void UpdateScore(int _scoreToAdd)
     {
-        score += _scoreToAdd;
+        score += _scoreToAdd * currComboEngine.GetComboScoreMultiplier();
         pf_scoreText.ChangeText(score.ToString("00000000"));
+    }
+
+    /// <summary>
+    /// Updates Score, by Brick hit
+    /// </summary>
+    private void UpdateScoreByBrickHit(Brick _brick, int _scoreToAdd)
+    {
+        UpdateScore(_scoreToAdd);
+        currComboEngine.IncrementComboBy(1); // Add 1 combo per brick hit
+        lastBrickHitPos = _brick.transform.position;
+
+        // Update UI display
+        pf_comboText.ChangeText(currComboEngine.GetCombo().ToString());
+        pf_comboText.GrowText(Vector3.zero);
+    }
+
+    /// <summary>
+    /// Spawn a FlavorTextWorld that displays new combo score multiplier
+    /// </summary>
+    private void SpawnComboFlavorText()
+    {
+        float _jumpOffset = 80f;
+        string _multiplierText = currComboEngine.GetComboScoreMultiplier().ToString();
+        string _popupText = _multiplierText + "X";
+
+        FlavorTextWorld _comboFlavor = Instantiate(pf_comboPopupText, lastBrickHitPos + Utilities.Vec3OnlyY(_jumpOffset), Quaternion.identity);
+        _comboFlavor.Initialize(_popupText, Color.white, _textSize: 1000, _lifetime: 1.0f, _doFade: true);
+        _comboFlavor.GrowAndFlashText(Utilities.Vec3OnlyY(-1 * _jumpOffset), Color.magenta, _growAndFlashDuration: 0.5f, _overshootRatio: 0.6f);
+
+        // Update UI display
+        pf_comboScoreMultiplierText.ChangeText(_popupText);
+        pf_comboScoreMultiplierText.GrowAndFlashText(Vector3.zero, Color.yellow, _growAndFlashDuration: 0.4f, _overshootRatio: 3.5f);
+    }
+
+    /// <summary>
+    /// Reset the UI that displays current combo, as well as current combo score multiplier
+    /// </summary>
+    private void ResetComboDisplayText()
+    {
+        pf_comboText.ChangeText("0");
+        pf_comboScoreMultiplierText.ChangeText("1x");
     }
 
     private Dictionary<ManagerPowerup.PowerupType, int> GetPowerupWeightDictForLevel(int _level)
@@ -222,7 +365,7 @@ public class ManagerLevel : MonoBehaviour
         _ball.UpdateBallScoreMultiplierOnBrickHit();
 
         int _brickScore = (int)(_brick.GetScore() * _ball.GetBallScoreMultiplier());
-        UpdateScore(_brickScore);
+        UpdateScoreByBrickHit(_brick, _brickScore);
 
         pf_scoreText.GrowAndFlashText(Vector3.zero, _ball.GetBallScoreMultiplierColor(), _growAndFlashDuration: 0.3f, _overshootRatio: 0.18f, _growFromPoint: false);
     }
@@ -233,7 +376,7 @@ public class ManagerLevel : MonoBehaviour
     public void UpdateScoreOnBrickHitByLaser(Brick _brick, Laser _laser)
     {
         int _brickScore = _brick.GetScore();
-        UpdateScore(_brickScore);
+        UpdateScoreByBrickHit(_brick, _brickScore);
     }
 
     /// <summary>

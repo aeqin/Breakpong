@@ -67,7 +67,7 @@ public class FlavorTextBase : MonoBehaviour
     {
         c_TMP.fontSize = _textSize;
         c_TMP.color = _textColor;
-        c_TMP.SetText(_displayText);
+        ChangeText(_displayText);
 
         baseTextColor = _textColor;
         f_hasLifetime = (_lifetime > 0f);
@@ -274,6 +274,7 @@ public class FlavorTextBase : MonoBehaviour
     public void ChangeText(string _txt)
     {
         c_TMP.SetText(_txt);
+        c_TMP.ForceMeshUpdate(); // Need to update mesh info (since changing text may shorten or lengthen vertex arrays)
     }
 
     /// <summary>
