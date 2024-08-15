@@ -29,6 +29,10 @@ public class Paddle : MonoBehaviour
     protected LineRendererRadial actionTwoRadial; // Displays duration/presses left of PaddleAction 2
     protected float radialSize = 48f;
 
+    // Events
+    public delegate void PaddleSizeChanged(Vector2 newSize);
+    public event PaddleSizeChanged EventPaddleSizeChanged;
+
     // PaddleAction Variables
     #region PaddleAction Definitions
     [SerializeField] protected PaddleSharedLib pf_PASharedLib;
@@ -47,6 +51,7 @@ public class Paddle : MonoBehaviour
     protected PaddleAction PA_ShrinkPaddle;
     protected PaddleAction PA_Laser;
     protected PaddleAction PA_Shield;
+    protected PaddleAction PA_Portal;
 
     /// <summary>
     /// Class used to hold the methods for a PaddleAction depending on event if the action button is pressed, held, release, or collision, etc.
@@ -244,6 +249,11 @@ public class Paddle : MonoBehaviour
         {
             onPressActionMethod = PaddleActionShieldPress,
         };
+        PA_Portal = new PaddleActionPortal(pf_PASharedLib.spr_Portal, null, -1, 20f)
+        {
+            onAssignMethod = PaddleActionPortalAssign,
+            onUnassignMethod = PaddleActionPortalUnassign,
+        };
 
         list_PA.Add(PA_Empty);
         list_PA.Add(PA_Magnet);
@@ -254,6 +264,7 @@ public class Paddle : MonoBehaviour
         list_PA.Add(PA_ShrinkPaddle);
         list_PA.Add(PA_Laser);
         list_PA.Add(PA_Shield);
+        list_PA.Add(PA_Portal);
     }
 
     /// <summary>
@@ -576,7 +587,8 @@ public class Paddle : MonoBehaviour
     protected void SetPaddleSize(Vector2 _newSize)
     {
         c_spriteRenderer.size = _newSize; // Setting SpriteRenderer size will automatically set BoxCollider size (since it is set to auto tile)
-        
+        EventPaddleSizeChanged?.Invoke(_newSize); // Emit Event that Paddle changed size
+
         // Make sure that growing Paddle collider will not grow past Level bounds (and so get the Paddle stuck)
         SetPaddlePosWithinLevelBounds();
     }
@@ -639,9 +651,9 @@ public class Paddle : MonoBehaviour
     /// <summary>
     /// Get Paddle Ball spawn position. (Middle of Paddle, slightly towards center of the Screen)
     /// </summary>
-    public Vector2 GetBallSpawnPos()
+    public Vector2 GetBallSpawnPos(float offset = 1f)
     {
-        return (Vector2)transform.position + new Vector2(dirToCenter * 0.13f, 0);
+        return (Vector2)transform.position + (new Vector2(c_spriteRenderer.size.x / 2 + offset, 0) * dirToCenter);
     }
 
     /// <summary>
@@ -755,6 +767,9 @@ public class Paddle : MonoBehaviour
                 break;
             case ManagerPowerup.PowerupType.PaddleShield:
                 AssignNextAction(PA_Shield);
+                break;
+            case ManagerPowerup.PowerupType.PaddlePortal:
+                AssignNextAction(PA_Portal);
                 break;
 
             default:
@@ -1388,6 +1403,40 @@ public class Paddle : MonoBehaviour
         _shield.Initialize(c_boxCol, c_spriteRenderer.size.y, _PA_Shield.xDist * dirToCenter, _PA_Shield.timeToTravel, _PA_Shield.timeActive); // Shield is same size as current Paddle size
 
         return true;
+    }
+    #endregion
+
+    #region PaddleActionPortal
+    /// <summary>
+    /// PaddleAction that spawns a portal in front of Paddle, can warp ball to the other Paddle on collision
+    /// </summary>
+    protected class PaddleActionPortal : PaddleAction
+    {
+        public PaddlePortal currPortal;
+
+        public PaddleActionPortal(Sprite _sUP, Sprite _sP, int _nP = -1, float _aD = -1f) : base(_sUP, _sP, _nP, _aD) { }
+    }
+
+    /// <summary>
+    /// On assign PaddleAction Portal. Create PaddlePortal
+    /// </summary>
+    protected void PaddleActionPortalAssign(PaddleAction _PA)
+    {
+        PaddleActionPortal _PA_Portal = (PaddleActionPortal)_PA; // Cast base PaddleAction into PaddleActionPortal
+
+        // Create a PaddlePortal that will be slightly bigger than Paddle so that Ball collides with portal first
+        _PA_Portal.currPortal = Instantiate(pf_PASharedLib.pf_PaddlePortal, transform); // Instantiate as child of Paddle, so portal moves with Paddle
+        _PA_Portal.currPortal.Initialize(this, c_boxCol);
+    }
+
+    /// <summary>
+    /// On unassign PaddleAction Portal. Destroy the PaddlePortal
+    /// </summary>
+    protected void PaddleActionPortalUnassign(PaddleAction _PA)
+    {
+        PaddleActionPortal _PA_Portal = (PaddleActionPortal)_PA; // Cast base PaddleAction into PaddleActionPortal
+
+        Destroy(_PA_Portal.currPortal.gameObject);
     }
     #endregion
     #endregion

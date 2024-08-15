@@ -151,7 +151,7 @@ public class LivesGrid : MonoBehaviour
 
         f_isDroppingLifeBall = false; // Finish drop flag
 
-        EventDroppedBallReached.Invoke(Camera.main.ScreenToWorldPoint(_dupeLifeBall.transform.position)); // Send signal that Life stopped dropping
+        EventDroppedBallReached?.Invoke(Camera.main.ScreenToWorldPoint(_dupeLifeBall.transform.position)); // Send signal that Life stopped dropping
         Destroy(_dupeLifeBall); // Remove duplicate LifeBall
         RemLife(); // Remove invisible LifeBall
     }

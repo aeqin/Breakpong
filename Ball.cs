@@ -15,6 +15,7 @@ public class Ball : MonoBehaviour
     [SerializeField] private float baseMoveSpeed = 330f;
     private float currMoveSpeed;
     private float extraHorizontalSpeedOnCollision = 200f;
+    private Vector3 velocityBeforeCollision;
 
     // Ball state variables
     public enum BallState { NORMAL, MAGNETIZED, }; // Mutually exclusive Ball states
@@ -89,6 +90,7 @@ public class Ball : MonoBehaviour
         // Move Ball
         MoveByState();
         CheckWithinBounds();
+        velocityBeforeCollision = c_rb.velocity;
 
         // Do Ball
         DoByFlag();
@@ -393,6 +395,14 @@ public class Ball : MonoBehaviour
     }
 
     /// <summary>
+    /// Returns the current velocity of this Ball, before OnTrigger/OnCollision triggers
+    /// </summary>
+    public Vector2 GetBallVelocityBeforeCollision()
+    {
+        return velocityBeforeCollision;
+    }
+
+    /// <summary>
     /// Returns the current score multiplier of this Ball
     /// </summary>
     public float GetBallScoreMultiplier()
@@ -450,6 +460,16 @@ public class Ball : MonoBehaviour
         c_rb.velocity = _dir;
 
         currState = BallState.NORMAL;
+    }
+
+    /// <summary>
+    /// Warp Ball to global position
+    /// </summary>
+    public void WarpBallTo(Vector2 _pos)
+    {
+        transform.position = _pos;
+
+        c_trailRenderer.Clear(); // Clear current trail, otherwise get a huge trail between before pos and warp pos
     }
 
     /// <summary>
